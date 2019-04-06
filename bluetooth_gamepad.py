@@ -16,6 +16,7 @@ import random
 from bluetooth import *
 
 from dbus.mainloop.glib import DBusGMainLoop
+from smbus import SMBus
 
 
 class BTBluezProfile(dbus.service.Object):
@@ -217,6 +218,49 @@ class BTService(dbus.service.Object):
         self.device.send_string(str_inp)
 
 
+class RealJoystick:
+    # Based on https://github.com/pimoroni/explorer-hat/blob/master/library/explorerhat/ads1015.py
+
+    PGA_6_144V = 6144
+    PGA_4_096V = 4096
+    PGA_2_048V = 2048
+    PGA_1_024V = 1024
+    PGA_0_512V = 512
+    PGA_0_256V = 256
+
+    REG_CONV = 0x00
+    REG_CFG = 0x01
+
+    def __init__(self):
+        self.address = 0x48
+        self.i2c = SMBus(1)
+
+        self.samples_per_second_map = {128: 0x0000, 250: 0x0020, 490: 0x0040, 920: 0x0060, 1600: 0x0080, 2400: 0x00A0, 3300: 0x00C0}
+        self.channel_map = {0: 0x4000, 1: 0x5000, 2: 0x6000, 3: 0x7000}
+        self.programmable_gain_map = {6144: 0x0000, 4096: 0x0200, 2048: 0x0400, 1024: 0x0600, 512: 0x0800, 256: 0x0A00}
+
+    def read_se_adc(self, channel=1, programmable_gain=6144, samples_per_second=1600):
+        # sane defaults
+        config = 0x0003 | 0x0100
+
+        config |= self.samples_per_second_map[samples_per_second]
+        config |= self.channel_map[channel]
+        config |= self.programmable_gain_map[programmable_gain]
+
+        # set "single shot" mode
+        config |= 0x8000
+
+        # write single conversion flag
+        self.i2c.write_i2c_block_data(self.address, RealJoystick.REG_CFG, [(config >> 8) & 0xFF, config & 0xFF])
+
+        delay = (1.0 / samples_per_second) + 0.0001
+        time.sleep(delay)
+
+        data = self.i2c.read_i2c_block_data(self.address, RealJoystick.REG_CONV)
+
+        return (((data[0] << 8) | data[1]) >> 4) * programmable_gain / 2048.0 / 1000.0
+
+
 if __name__ == "__main__":
     if not os.geteuid() == 0:
         sys.exit("Only root can run this script")
@@ -224,6 +268,15 @@ if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
 
     bt = BTService()
+    joystick = RealJoystick()
+    #
+    # while True:
+    #     time.sleep(1)
+    #     x = joystick.read_se_adc(3)
+    #     y = joystick.read_se_adc(0)
+    #     z = joystick.read_se_adc(1)
+    #     w = joystick.read_se_adc(2)
+    #     print("x=" + str(x) + " y=" + str(y) + " z="+ str(z) + " w=" + str(w))
 
     while True:
         re_start = False
@@ -232,25 +285,43 @@ if __name__ == "__main__":
         button_bits_1 = 0
         button_bits_2 = 0
 
+        new_button_bits_1 = 0
+        new_button_bits_2 = 0
+
         axis = [0, 0, 0, 0]
+        new_axis = [0, 0, 0, 0]
 
         while not re_start:
-            time.sleep(1)
+            time.sleep(0.1)
 
-            change_axis = random.randint(0, 3)
-            change_value = random.randint(0, 10)
+            def fix(v):
+                r = int(((v / 5) * 254))
+                # print("Read joystick value as " + str(v) + " fixed it to " + str(r))
+                return r
 
-            v = (axis[change_axis] + change_value) % 255
-            if v < 0:
-                v = 256 - v
+            new_axis[0] = fix(joystick.read_se_adc(3))
+            new_axis[1] = fix(joystick.read_se_adc(0))
+            new_axis[2] = fix(joystick.read_se_adc(1))
+            new_axis[3] = fix(joystick.read_se_adc(2))
 
-            axis[change_axis] = v
+            has_changes = False
 
-            data = [0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]]
+            for i in range(0, 4):
+                if axis[i] != new_axis[i]:
+                    axis[i] = new_axis[i]
+                    has_changes = True
 
-            print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
-            try:
-                bt.send_input(data)
-            except Exception as e:
-                print("Failed to send data - disconnected " + str(e))
-                re_start = True
+            if button_bits_1 != new_button_bits_1 or button_bits_2 != new_button_bits_2:
+                button_bits_1 = new_button_bits_1
+                button_bits_2 = new_button_bits_2
+                has_changes = True
+
+            if has_changes:
+                data = [0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]]
+
+                # print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
+                try:
+                    bt.send_input(data)
+                except Exception as e:
+                    print("Failed to send data - disconnected " + str(e))
+                    re_start = True
