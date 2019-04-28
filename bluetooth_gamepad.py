@@ -17,7 +17,7 @@ from bluetooth import *
 
 from dbus.mainloop.glib import DBusGMainLoop
 from smbus import SMBus
-
+from joystick import Joystick
 
 class BTBluezProfile(dbus.service.Object):
     fd = -1
@@ -268,15 +268,7 @@ if __name__ == "__main__":
     DBusGMainLoop(set_as_default=True)
 
     bt = BTService()
-    joystick = RealJoystick()
-    #
-    # while True:
-    #     time.sleep(1)
-    #     x = joystick.read_se_adc(3)
-    #     y = joystick.read_se_adc(0)
-    #     z = joystick.read_se_adc(1)
-    #     w = joystick.read_se_adc(2)
-    #     print("x=" + str(x) + " y=" + str(y) + " z="+ str(z) + " w=" + str(w))
+    joystick = Joystick()
 
     while True:
         re_start = False
@@ -285,9 +277,6 @@ if __name__ == "__main__":
         button_bits_1 = 0
         button_bits_2 = 0
 
-        new_button_bits_1 = 0
-        new_button_bits_2 = 0
-
         axis = [0, 0, 0, 0]
         new_axis = [0, 0, 0, 0]
 
@@ -295,14 +284,55 @@ if __name__ == "__main__":
             time.sleep(0.1)
 
             def fix(v):
-                r = int(((v / 5) * 254))
+                r = int(((v - 2.5) / 2.5) * 127)
+                if r < 0:
+                    r = 256 + r
+                elif r > 127:
+                    r = 127
+
+                try:
+                    c = chr(r)
+                except Exception as e:
+                    print("Failed to convert " + str(v) + " got " + str(r))
+                    r = 0
+
                 # print("Read joystick value as " + str(v) + " fixed it to " + str(r))
                 return r
 
-            new_axis[0] = fix(joystick.read_se_adc(3))
-            new_axis[1] = fix(joystick.read_se_adc(0))
-            new_axis[2] = fix(joystick.read_se_adc(1))
-            new_axis[3] = fix(joystick.read_se_adc(2))
+            joystick_axis = joystick.readAxis()
+            joystick_buttons = joystick.readButtons()
+
+            new_axis[0] = fix(joystick_axis['x'])
+            new_axis[1] = fix(joystick_axis['y'])
+            new_axis[2] = fix(joystick_axis['rx'])
+            new_axis[3] = fix(joystick_axis['ry'])
+
+            new_button_bits_1 = 0
+            new_button_bits_2 = 0
+
+            # 'trigger', 'tl', 'tr', 'thumb', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'thumbl', 'thumbr'
+            if joystick_buttons['dpad_up']:
+                new_button_bits_1 |= 1
+            if joystick_buttons['dpad_down']:
+                new_button_bits_1 |= 2
+            if joystick_buttons['dpad_left']:
+                new_button_bits_1 |= 4
+            if joystick_buttons['dpad_right']:
+                new_button_bits_1 |= 8
+
+            if joystick_buttons['trigger']:
+                new_button_bits_1 |= 16
+            if joystick_buttons['tl']:
+                new_button_bits_1 |= 32
+            if joystick_buttons['tr']:
+                new_button_bits_1 |= 64
+            if joystick_buttons['thumb']:
+                new_button_bits_1 |= 128
+
+            if joystick_buttons['thumbl']:
+                new_button_bits_2 |= 1
+            if joystick_buttons['thumbr']:
+                new_button_bits_2 |= 2
 
             has_changes = False
 
