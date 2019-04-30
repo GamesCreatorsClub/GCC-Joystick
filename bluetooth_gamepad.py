@@ -54,7 +54,6 @@ class BTBluezProfile(dbus.service.Object):
 
 
 class BTDevice:
-    MY_ADDRESS = "B8:27:EB:68:71:C7"
     MY_DEV_NAME = "gcc-bt-joystick"
 
     P_CTRL = 17  # Service port - must match port configured in SDP record
@@ -129,12 +128,12 @@ class BTDevice:
     def listen(self):
 
         print("Waiting for connections")
-        self.scontrol = BluetoothSocket(L2CAP)
-        self.sinterrupt = BluetoothSocket(L2CAP)
+        self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
+        self.sinterrupt = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
 
         # bind these sockets to a port - port zero to select next available
-        self.scontrol.bind((self.MY_ADDRESS, self.P_CTRL))
-        self.sinterrupt.bind((self.MY_ADDRESS, self.P_INTR))
+        self.scontrol.bind((socket.BDADDR_ANY, self.P_CTRL))
+        self.sinterrupt.bind((socket.BDADDR_ANY, self.P_INTR))
 
         # Start listening on the server sockets
         self.scontrol.listen(1)  # Limit of 1 connection
