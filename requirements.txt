@@ -1,0 +1,3 @@
+pybluez
+dbus-python
+RPi.GPIO

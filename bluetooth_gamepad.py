@@ -146,8 +146,8 @@ class BTDevice:
         self.cinterrupt, cinfo = self.sinterrupt.accept()
         print("Got a connection on the interrupt channel from " + cinfo[0])
 
-    # send a string to the bluetooth host machine
-    def send_string(self, message):
+    # send a message to the bluetooth host machine
+    def send_message(self, message):
 
         #    print("Sending "+message)
         self.cinterrupt.send(message)
@@ -183,39 +183,8 @@ class BTService(dbus.service.Object):
             except Exception as e:
                 sys.exit("Failed to copy org.gcc.btservice.conf to /etc/dbus-1/system.d/;" + str(e))
 
-    @dbus.service.method('org.gcc.btservice', in_signature='yay')
-    def send_keys(self, modifier_byte, keys):
-
-        cmd_str = ""
-        cmd_str += chr(0xA1)
-        cmd_str += chr(0x01)
-        cmd_str += chr(modifier_byte)
-        cmd_str += chr(0x00)
-
-        count = 0
-        for key_code in keys:
-            if count < 6:
-                cmd_str += chr(key_code)
-            count += 1
-
-        self.device.send_string(cmd_str)
-
     def send_input(self, inp):
-        str_inp = ""
-        for elem in inp:
-            if type(elem) is list:
-                tmp_str = ""
-                for tmp_elem in elem:
-                    tmp_str += str(tmp_elem)
-                for i in range(0, len(tmp_str) // 8):
-                    if (i + 1) * 8 >= len(tmp_str):
-                        str_inp += chr(int(tmp_str[i*8:], 2))
-                    else:
-                        str_inp += chr(int(tmp_str[i * 8:(i + 1) * 8], 2))
-            else:
-                str_inp += chr(elem)
-
-        self.device.send_string(str_inp)
+        self.device.send_message(inp)
 
 if __name__ == "__main__":
     if not os.geteuid() == 0:
@@ -287,7 +256,7 @@ if __name__ == "__main__":
                 has_changes = True
 
             if has_changes:
-                data = [0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]]
+                data = bytes((0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]))
 
                 # print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
                 try:
