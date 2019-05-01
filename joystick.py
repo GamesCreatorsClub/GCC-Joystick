@@ -76,11 +76,27 @@ class Joystick:
 
         return (((data[0] << 8) | data[1]) >> 4) * programmable_gain / 2048.0 / 1000.0
 
+    def _fix(self, v):
+        r = int(((v - 2.5) / 2.5) * 127)
+        if r < 0:
+            r = 256 + r
+        elif r > 127:
+            r = 127
+
+        try:
+            c = chr(r)
+        except Exception as e:
+            print("Failed to convert " + str(v) + " got " + str(r))
+            r = 0
+
+        # print("Read joystick value as " + str(v) + " fixed it to " + str(r))
+        return r
+
     def readAxis(self):
-        self.axis['rx'] = self._read_se_adc(3)
-        self.axis['ry'] = self._read_se_adc(0)
-        self.axis['x'] = self._read_se_adc(2)
-        self.axis['y'] = self._read_se_adc(1)
+        self.axis['rx'] = self._fix(self._read_se_adc(3))
+        self.axis['ry'] = self._fix(self._read_se_adc(0))
+        self.axis['x'] = self._fix(self._read_se_adc(2))
+        self.axis['y'] = self._fix(self._read_se_adc(1))
         return self.axis
 
     def readButtons(self):
