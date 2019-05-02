@@ -1,23 +1,28 @@
-#!/usr/bin/python
-
-###!/usr/bin/env python3
+#!/usr/bin/env python3
 
 # Based on https://github.com/yaptb/BlogCode
-
-
-from __future__ import absolute_import, print_function
 
 import os
 import sys
 import dbus
 import dbus.service
 import time
-import random
-from bluetooth import *
+import socket
 
+import sdp_record
+import usb_hid_report_descriptor
+
+from bluetooth import *
 from dbus.mainloop.glib import DBusGMainLoop
 from smbus import SMBus
 from joystick import Joystick
+from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, BrowseGroupList, LanguageBaseAttributeIDList, BluetoothProfileDescriptorList, AdditionalProtocolDescriptorLists, \
+    ServiceName, ServiceDescription, ProviderName, HIDDeviceReleaseNumber, HIDProfileVersion, HIDDeviceSubclass, HIDCountryCode, HIDVirtualCable, HIDReconnectInitiate, HIDLANGIDBaseList, \
+    HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
+    UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
+from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
+    Application, Report, ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
+
 
 class BTBluezProfile(dbus.service.Object):
     fd = -1
@@ -93,7 +98,7 @@ class BTDevice:
         print("Configuring Bluez Profile")
 
         # setup profile options
-        service_record = self.read_sdp_service_record()
+        service_record = self.sdp_service_record()
 
         opts = {
             "ServiceRecord": service_record,
@@ -111,17 +116,6 @@ class BTDevice:
         manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, BTDevice.UUID, opts)
 
         print("Profile registered ")
-
-    # read and return an sdp record from a file
-    @staticmethod
-    def read_sdp_service_record():
-        print("Reading service record")
-
-        try:
-            with open(BTDevice.SDP_RECORD_PATH, "r") as fh:
-                return fh.read()
-        except Exception as e:
-            sys.exit("Could not open the sdp record. Exiting..." + str(e))
 
     # ideally this would be handled by the Bluez 5 profile
     # but that didn't seem to work
@@ -150,6 +144,69 @@ class BTDevice:
 
         #    print("Sending "+message)
         self.cinterrupt.send(message)
+
+    @staticmethod
+    def sdp_service_record():
+        print("Creating service record")
+
+        record = SDPRecord()
+
+        record += ServiceClassIDList(HumanInterfaceDeviceService)
+        record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
+        record += BrowseGroupList(UUID(PublicBrowseGroup))
+        record += LanguageBaseAttributeIDList(LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
+        record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
+        record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
+        record += ServiceName(0x0100, "A Virtual Gamepad Controller")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+        record += ServiceDescription(0x0100, "Keyboard > BT Gamepad")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+        record += ProviderName(0x0100, "GCC")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+        record += HIDDeviceReleaseNumber(0x100)  # deprecated release number 1.0
+        record += HIDProfileVersion(0x0111)  # indicating version 1.11
+        record += HIDDeviceSubclass(sdp_record.Gamepad)
+        record += HIDCountryCode(0x00)
+        record += HIDVirtualCable(False)
+        record += HIDReconnectInitiate(False)
+        record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
+        record += HIDDescriptorList(report=usb_hid_report_descriptor.USBHIDReportDescriptor(
+            UsagePage(GenericDesktopCtrls),
+            Usage(usb_hid_report_descriptor.GamePad),
+            Collection(usb_hid_report_descriptor.Application,
+                       Collection(usb_hid_report_descriptor.Report,
+                                  ReportID(InputReport),
+                                  UsagePage(usb_hid_report_descriptor.Button),
+                                  UsageMinimum(0x01),
+                                  UsageMaximum(0x02),
+                                  LogicalMinimum(0),
+                                  LogicalMaximum(1),
+                                  ReportCount(14),
+                                  ReportSize(1),
+                                  Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
+                                  ReportCount(1),
+                                  ReportSize(2),
+                                  Input(Const, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
+                                  Collection(Physical,
+                                             UsagePage(GenericDesktopCtrls),
+                                             Usage(usb_hid_report_descriptor.X),
+                                             Usage(usb_hid_report_descriptor.Y),
+                                             Usage(usb_hid_report_descriptor.Rx),
+                                             Usage(usb_hid_report_descriptor.Ry),
+                                             LogicalMinimum(-127),
+                                             LogicalMaximum(127),
+                                             ReportSize(8),
+                                             ReportCount(4),
+                                             Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
+                                             )
+                                  )
+                       )
+        ).hex().lower(), encoding="hex")
+        record += HIDParserVersion(0x0100)  # 1.0
+        record += HIDSupervisionTimeout(0x0c80)  # 3200
+        record += HIDNormallyConnectable(True)
+        record += HIDBootDevice(False)
+        record += HIDSSRHostMaxLatency(0x0640)  # 1600
+        record += HIDSSRHostMinTimeout(0x0320)  # 800
+
+        return record.xml()
 
 
 # define a dbus service that emulates a bluetooth keyboard
@@ -184,6 +241,7 @@ class BTService(dbus.service.Object):
 
     def send_input(self, inp):
         self.device.send_message(inp)
+
 
 if __name__ == "__main__":
     if not os.geteuid() == 0:

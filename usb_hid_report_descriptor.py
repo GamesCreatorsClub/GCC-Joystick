@@ -48,6 +48,11 @@ NoPreferredState = 0x20
 NoNullPosition = 0x00
 NullState = 0x40
 
+# Report Type
+InputReport = 0x01
+OutputReport = 0x02
+FeatureReport = 0x03
+
 
 class _Element:
     def values(self):
@@ -69,7 +74,7 @@ class _Elements(_Element):
                 yield b
 
     def hex(self):
-        return ''.join('{:02x}'.format(x) for x in bytes(self))
+        return "".join("{:02x}".format(x) for x in bytes(self))
 
 
 class USBHIDReportDescriptor(_Elements):
@@ -111,8 +116,8 @@ class Usage(_SimpleElement):
 
 
 class ReportID(_SimpleElement):
-    def __init__(self, id):
-        super(ReportID, self).__init__(0x85, id)
+    def __init__(self, report_type):
+        super(ReportID, self).__init__(0x85, report_type)
 
 
 class UsageMinimum(_SimpleElement):
@@ -151,15 +156,15 @@ class Input(_SimpleElement):
 
 
 if __name__ == "__main__":
-    def toHex(bytes):
-        return ''.join('{:02x}'.format(x) for x in bytes)
+
+    # Testing creation of USB HID Report Descriptor
 
     descriptor = USBHIDReportDescriptor(
         UsagePage(GenericDesktopCtrls),
         Usage(GamePad),
         Collection(Application,
                    Collection(Report,
-                              ReportID(1),
+                              ReportID(InputReport),
                               UsagePage(Button),
                               UsageMinimum(0x01),
                               UsageMaximum(0x02),

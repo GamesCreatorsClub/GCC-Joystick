@@ -76,7 +76,8 @@ class Joystick:
 
         return (((data[0] << 8) | data[1]) >> 4) * programmable_gain / 2048.0 / 1000.0
 
-    def _fix(self, v):
+    @staticmethod
+    def _fix(v):
         r = int(((v - 2.5) / 2.5) * 127)
         if r < 0:
             r = 256 + r
