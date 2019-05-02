@@ -4,24 +4,22 @@
 
 import os
 import sys
-import dbus
-import dbus.service
 import time
 import socket
 
 import sdp_record
 import usb_hid_report_descriptor
 
-from bluetooth import *
+import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
-from smbus import SMBus
+
 from joystick import Joystick
 from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, BrowseGroupList, LanguageBaseAttributeIDList, BluetoothProfileDescriptorList, AdditionalProtocolDescriptorLists, \
     ServiceName, ServiceDescription, ProviderName, HIDDeviceReleaseNumber, HIDProfileVersion, HIDDeviceSubclass, HIDCountryCode, HIDVirtualCable, HIDReconnectInitiate, HIDLANGIDBaseList, \
     HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
     UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
 from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
-    Application, Report, ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
+    ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
 
 
 class BTBluezProfile(dbus.service.Object):
@@ -30,7 +28,7 @@ class BTBluezProfile(dbus.service.Object):
     @dbus.service.method("org.bluez.Profile1", in_signature="", out_signature="")
     def Release(self):
         print("Release")
-        mainloop.quit()
+        # TODO do something here
 
     @dbus.service.method("org.bluez.Profile1", in_signature="", out_signature="")
     def Cancel(self):
