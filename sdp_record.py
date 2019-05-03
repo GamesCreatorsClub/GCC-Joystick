@@ -150,13 +150,13 @@ HandheldGesturalInputDevice = 0x24
 
 
 class XMLElement:
-    def xml(self, ident, xml):
+    def xml(self, indent, xml):
         raise NotImplemented()
 
     @staticmethod
-    def _ident(ident):
-        # return " " * (ident * 4)
-        return "\t" * ident
+    def _indent(indent):
+        # return " " * (indent * 4)
+        return "\t" * indent
 
 
 class Attribute(XMLElement):
@@ -164,10 +164,10 @@ class Attribute(XMLElement):
         self.id = id
         self.content = content
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<attribute id=\"0x{:04x}\">\n".format(self.id)
-        xml = self.content.xml(ident + 1, xml)
-        xml += self._ident(ident) + "</attribute>\n"
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<attribute id=\"0x{:04x}\">\n".format(self.id)
+        xml = self.content.xml(indent + 1, xml)
+        xml += self._indent(indent) + "</attribute>\n"
         return xml
 
 
@@ -176,11 +176,11 @@ class Sequence(XMLElement):
         super(Sequence, self).__init__()
         self.list = list
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<sequence>\n"
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<sequence>\n"
         for element in self.list:
-            xml = element.xml(ident + 1, xml)
-        xml += self._ident(ident) + "</sequence>\n"
+            xml = element.xml(indent + 1, xml)
+        xml += self._indent(indent) + "</sequence>\n"
         return xml
 
 
@@ -189,8 +189,8 @@ class UUID(XMLElement):
         super(UUID, self).__init__()
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<uuid value=\"0x{:04x}\" />\n".format(self.value)
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<uuid value=\"0x{:04x}\" />\n".format(self.value)
         return xml
 
 
@@ -199,8 +199,8 @@ class UInt8(XMLElement):
         super(UInt8, self).__init__()
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<uint8 value=\"0x{:02x}\" />\n".format(self.value)
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<uint8 value=\"0x{:02x}\" />\n".format(self.value)
         return xml
 
 
@@ -209,8 +209,8 @@ class UInt16(XMLElement):
         super(UInt16, self).__init__()
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<uint16 value=\"0x{:04x}\" />\n".format(self.value)
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<uint16 value=\"0x{:04x}\" />\n".format(self.value)
         return xml
 
 
@@ -219,8 +219,8 @@ class UInt32(XMLElement):
         super(UInt32, self).__init__()
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<uint16 value=\"0x{:08x}\" />\n".format(self.value)
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<uint16 value=\"0x{:08x}\" />\n".format(self.value)
         return xml
 
 
@@ -231,8 +231,8 @@ class Bool8(XMLElement):
             raise ValueError("Expected boolean but got " + str(type(value)))
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<boolean value=\"" + str(self.value).lower() + "\" />\n"
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<boolean value=\"" + str(self.value).lower() + "\" />\n"
         return xml
 
 
@@ -242,11 +242,11 @@ class Text(XMLElement):
         self.value = value
         self.encoding = encoding
 
-    def xml(self, ident, xml):
+    def xml(self, indent, xml):
         if self.encoding is None:
-            xml += self._ident(ident) + "<text value=\"" + self.value + "\" />\n"
+            xml += self._indent(indent) + "<text value=\"" + self.value + "\" />\n"
         else:
-            xml += self._ident(ident) + "<text encoding=\"" + self.encoding + "\" value=\"" + self.value + "\" />\n"
+            xml += self._indent(indent) + "<text encoding=\"" + self.encoding + "\" value=\"" + self.value + "\" />\n"
         return xml
 
 
@@ -255,8 +255,8 @@ class URL(XMLElement):
         super(URL, self).__init__()
         self.value = value
 
-    def xml(self, ident, xml):
-        xml += self._ident(ident) + "<url value=\"" + self.value + "\" />\n"
+    def xml(self, indent, xml):
+        xml += self._indent(indent) + "<url value=\"" + self.value + "\" />\n"
         return xml
 
 
@@ -526,7 +526,7 @@ if __name__ == "__main__":
 
     # Testing creation of SDPRecord
 
-    from USBHIDReportDescriptor import *
+    from usb_hid_report_descriptor import *
 
     record = SDPRecord()
 
