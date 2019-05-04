@@ -1,0 +1,1 @@
+git+https://github.com/ApproxEng/approxeng.input.git#egg=pkg&subdirectory=src/python
