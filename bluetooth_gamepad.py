@@ -14,10 +14,6 @@ import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 
 from joystick import Joystick
-from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, BrowseGroupList, LanguageBaseAttributeIDList, BluetoothProfileDescriptorList, AdditionalProtocolDescriptorLists, \
-    ServiceName, ServiceDescription, ProviderName, HIDDeviceReleaseNumber, HIDProfileVersion, HIDDeviceSubclass, HIDCountryCode, HIDVirtualCable, HIDReconnectInitiate, HIDLANGIDBaseList, \
-    HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
-    UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
 
 from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
 
