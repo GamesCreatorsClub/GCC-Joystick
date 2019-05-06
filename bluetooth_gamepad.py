@@ -22,63 +22,31 @@ from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDeskt
     ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
 
 
-class BTBluezProfile(dbus.service.Object):
-    fd = -1
-
-    @dbus.service.method("org.bluez.Profile1", in_signature="", out_signature="")
-    def Release(self):
-        print("Release")
-        # TODO do something here
-
-    @dbus.service.method("org.bluez.Profile1", in_signature="", out_signature="")
-    def Cancel(self):
-        print("Cancel")
-
-    @dbus.service.method("org.bluez.Profile1", in_signature="oha{sv}", out_signature="")
-    def NewConnection(self, path, fd, properties):
-        self.fd = fd.take()
-        print("NewConnection(%s, %d)" % (path, self.fd))
-        for key in properties.keys():
-            if key == "Version" or key == "Features":
-                print("  %s = 0x%04x" % (key, properties[key]))
-            else:
-                print("  %s = %s" % (key, properties[key]))
-
-    @dbus.service.method("org.bluez.Profile1", in_signature="o", out_signature="")
-    def RequestDisconnection(self, path):
-        print("RequestDisconnection(%s)" % path)
-
-        if self.fd > 0:
-            os.close(self.fd)
-            self.fd = -1
-
-    def __init__(self, bus, path):
-        dbus.service.Object.__init__(self, bus, path)
-
-
-class BTDevice:
-    MY_DEV_NAME = "gcc-bt-joystick"
-
+class BTDevice(dbus.service.Object):
     P_CTRL = 17  # Service port - must match port configured in SDP record
     P_INTR = 19  # Service port - must match port configured in SDP record#Interrrupt port
     PROFILE_DBUS_PATH = "/bluez/gcc/gcc_joy_profile"  # dbus path of  the bluez profile we will create
-    SDP_RECORD_PATH = sys.path[0] + "/sdp_record_gamepad.xml"  # file path of the sdp record to laod
-    UUID = "00001124-0000-1000-8000-00805f9b34fb"
 
-    def __init__(self):
+    def __init__(self, device_name='gcc-bt-joystick', uuid="00001124-0000-1000-8000-00805f9b34fb"):
         print("Setting up BT device")
+        self.device_name = device_name
+        self.uuid = uuid
+
         self.scontrol = None
         self.ccontrol = None
         self.sinterrupt = None
         self.cinterrupt = None
 
-        self.init_bt_device()
-        self.init_bluez_profile()
+        self.init_device()
+        self.init_profile()
+        self.ensure_dbus_conf_file()
+
+        bus_name = dbus.service.BusName("org.gcc.btservice", bus=dbus.SystemBus())
+        dbus.service.Object.__init__(self, bus_name, "/org/gcc/btservice")
 
     # configure the bluetooth hardware device
-    @staticmethod
-    def init_bt_device():
-        print("Configuring for name " + BTDevice.MY_DEV_NAME)
+    def init_device(self):
+        print("Configuring for name " + self.device_name)
 
         # set the device class to a keybord and joystick
         print("Bringing hcio up")
@@ -87,15 +55,23 @@ class BTDevice:
 
         print("Setting up hcio")
         os.system("hciconfig hcio class 0x002508")
-        os.system("hciconfig hcio name " + BTDevice.MY_DEV_NAME)
+        os.system("hciconfig hcio name " + self.device_name)
         os.system("hciconfig hcio piscan")
 
-    # set up a bluez profile to advertise device capabilities from a loaded service record
-    def init_bluez_profile(self):
+    @staticmethod
+    def ensure_dbus_conf_file():
+        if not os.path.exists("/etc/dbus-1/system.d/org.gcc.btservice.conf"):
+            try:
+                with open(sys.path[0] + "/org.gcc.btservice.conf", "r") as conf_file:
+                    conf_file_content = conf_file.read()
 
-        print("Configuring Bluez Profile")
+                with open("/etc/dbus-1/system.d/org.gcc.btservice.conf", "w") as etc_conf_file:
+                    etc_conf_file.write(conf_file_content)
 
-        # setup profile options
+            except Exception as e:
+                sys.exit("Failed to copy org.gcc.btservice.conf to /etc/dbus-1/system.d/;" + str(e))
+
+    def init_profile(self):
         service_record = self.sdp_service_record()
 
         opts = {
@@ -105,25 +81,15 @@ class BTDevice:
             "RequireAuthorization": False
         }
 
-        # retrieve a proxy for the bluez profile interface
         bus = dbus.SystemBus()
         manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez"), "org.bluez.ProfileManager1")
 
-        profile = BTBluezProfile(bus, BTDevice.PROFILE_DBUS_PATH)
+        manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, self.uuid, opts)
 
-        manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, BTDevice.UUID, opts)
-
-        print("Profile registered ")
-
-    # ideally this would be handled by the Bluez 5 profile
-    # but that didn't seem to work
     def listen(self):
-
-        print("Waiting for connections")
         self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
         self.sinterrupt = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
 
-        # bind these sockets to a port - port zero to select next available
         self.scontrol.bind((socket.BDADDR_ANY, self.P_CTRL))
         self.sinterrupt.bind((socket.BDADDR_ANY, self.P_INTR))
 
@@ -137,10 +103,7 @@ class BTDevice:
         self.cinterrupt, cinfo = self.sinterrupt.accept()
         print("Got a connection on the interrupt channel from " + cinfo[0])
 
-    # send a message to the bluetooth host machine
     def send_message(self, message):
-
-        #    print("Sending "+message)
         self.cinterrupt.send(message)
 
     @staticmethod
@@ -207,52 +170,20 @@ class BTDevice:
         return record.xml()
 
 
-# define a dbus service that emulates a bluetooth keyboard
-# this will enable different clients to connect to and use
-# the service
-class BTService(dbus.service.Object):
-
-    def __init__(self):
-        print("Setting up service")
-        self.ensure_dbus_conf_file()
-
-        bus_name = dbus.service.BusName("org.gcc.btservice", bus=dbus.SystemBus())
-        dbus.service.Object.__init__(self, bus_name, "/org/gcc/btservice")
-
-        self.device = BTDevice()
-
-    def start_listening(self):
-        self.device.listen()
-
-    @staticmethod
-    def ensure_dbus_conf_file():
-        if not os.path.exists("/etc/dbus-1/system.d/org.gcc.btservice.conf"):
-            try:
-                with open(sys.path[0] + "/org.gcc.btservice.conf", "r") as conf_file:
-                    conf_file_content = conf_file.read()
-
-                with open("/etc/dbus-1/system.d/org.gcc.btservice.conf", "w") as etc_conf_file:
-                    etc_conf_file.write(conf_file_content)
-
-            except Exception as e:
-                sys.exit("Failed to copy org.gcc.btservice.conf to /etc/dbus-1/system.d/;" + str(e))
-
-    def send_input(self, inp):
-        self.device.send_message(inp)
-
-
 if __name__ == "__main__":
     if not os.geteuid() == 0:
         sys.exit("Only root can run this script")
 
     DBusGMainLoop(set_as_default=True)
 
-    bt = BTService()
+    bt = BTDevice()
     joystick = Joystick()
 
     while True:
         re_start = False
-        bt.start_listening()
+
+        print("Waiting for connections")
+        bt.listen()
 
         button_bits_1 = 0
         button_bits_2 = 0
@@ -315,7 +246,7 @@ if __name__ == "__main__":
 
                 # print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
                 try:
-                    bt.send_input(data)
+                    bt.send_message(data)
                 except Exception as e:
                     print("Failed to send data - disconnected " + str(e))
                     re_start = True
