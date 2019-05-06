@@ -21,15 +21,21 @@ from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, Br
 from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
     ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
 
+from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
+
 
 class BTDevice(dbus.service.Object):
     P_CTRL = 17  # Service port - must match port configured in SDP record
     P_INTR = 19  # Service port - must match port configured in SDP record#Interrrupt port
     PROFILE_DBUS_PATH = "/bluez/gcc/gcc_joy_profile"  # dbus path of  the bluez profile we will create
 
-    def __init__(self, device_name='gcc-bt-joystick', uuid="00001124-0000-1000-8000-00805f9b34fb", service_name='org.gcc.btservice'):
-        print("Setting up BT device")
+    def __init__(self, device_name='gcc-bt-joystick',
+                 device_class=LIMITED_DISCOVERABLE_MODE | PERIPHERAL | GAMEPAD,
+                 uuid="00001124-0000-1000-8000-00805f9b34fb",
+                 service_name='org.gcc.btservice'):
+
         self.device_name = device_name
+        self.device_class = device_class
         self.uuid = uuid
         self.service_name = service_name
 
@@ -47,13 +53,11 @@ class BTDevice(dbus.service.Object):
 
     # configure the bluetooth hardware device
     def init_device(self):
-        # set the device class to a keybord and joystick
         print("Bringing hcio up")
         os.system("hciconfig hcio up")
         time.sleep(1)  # Waiting for BT device to be brought up - it would be nicer to find better way than arbitrary wait
 
-        # print("Setting up hcio")
-        os.system("hciconfig hcio class 0x002508")
+        os.system("hciconfig hcio class 0x{:06x}".format(self.device_class))
         os.system("hciconfig hcio name " + self.device_name)
         os.system("hciconfig hcio piscan")
 
@@ -99,26 +103,6 @@ class BTDevice(dbus.service.Object):
         manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez"), "org.bluez.ProfileManager1")
 
         manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, self.uuid, opts)
-
-    def listen(self):
-        self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
-        self.sinterrupt = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
-
-        self.scontrol.bind((socket.BDADDR_ANY, self.P_CTRL))
-        self.sinterrupt.bind((socket.BDADDR_ANY, self.P_INTR))
-
-        # Start listening on the server sockets
-        self.scontrol.listen(1)  # Limit of 1 connection
-        self.sinterrupt.listen(1)
-
-        self.ccontrol, cinfo = self.scontrol.accept()
-        print("Got a connection on the control channel from " + cinfo[0])
-
-        self.cinterrupt, cinfo = self.sinterrupt.accept()
-        print("Got a connection on the interrupt channel from " + cinfo[0])
-
-    def send_message(self, message):
-        self.cinterrupt.send(message)
 
     @staticmethod
     def sdp_service_record():
@@ -182,6 +166,26 @@ class BTDevice(dbus.service.Object):
         record += HIDSSRHostMinTimeout(0x0320)  # 800
 
         return record.xml()
+
+    def listen(self):
+        self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
+        self.sinterrupt = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
+
+        self.scontrol.bind((socket.BDADDR_ANY, self.P_CTRL))
+        self.sinterrupt.bind((socket.BDADDR_ANY, self.P_INTR))
+
+        # Start listening on the server sockets
+        self.scontrol.listen(1)  # Limit of 1 connection
+        self.sinterrupt.listen(1)
+
+        self.ccontrol, cinfo = self.scontrol.accept()
+        print("Got a connection on the control channel from " + cinfo[0])
+
+        self.cinterrupt, cinfo = self.sinterrupt.accept()
+        print("Got a connection on the interrupt channel from " + cinfo[0])
+
+    def send_message(self, message):
+        self.cinterrupt.send(message)
 
 
 if __name__ == "__main__":
