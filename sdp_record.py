@@ -526,7 +526,7 @@ if __name__ == "__main__":
 
     # Testing creation of SDPRecord
 
-    from usb_hid_report_descriptor import *
+    from hid_report_descriptor import *
 
     record = SDPRecord()
 

@@ -8,7 +8,7 @@ import time
 import socket
 
 import sdp_record
-import usb_hid_report_descriptor
+import hid_report_descriptor
 
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
@@ -18,9 +18,6 @@ from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, Br
     ServiceName, ServiceDescription, ProviderName, HIDDeviceReleaseNumber, HIDProfileVersion, HIDDeviceSubclass, HIDCountryCode, HIDVirtualCable, HIDReconnectInitiate, HIDLANGIDBaseList, \
     HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
     UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
-from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
-    ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical, \
-    USBHIDReportDescriptor
 
 from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
 
@@ -127,38 +124,7 @@ class BTDevice(dbus.service.Object):
         record += HIDVirtualCable(False)
         record += HIDReconnectInitiate(False)
         record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
-        record += HIDDescriptorList(report=USBHIDReportDescriptor(
-            UsagePage(GenericDesktopCtrls),
-            Usage(usb_hid_report_descriptor.GamePad),
-            Collection(usb_hid_report_descriptor.Application,
-                       Collection(usb_hid_report_descriptor.Report,
-                                  ReportID(InputReport),
-                                  UsagePage(usb_hid_report_descriptor.Button),
-                                  UsageMinimum(0x01),
-                                  UsageMaximum(0x02),
-                                  LogicalMinimum(0),
-                                  LogicalMaximum(1),
-                                  ReportCount(14),
-                                  ReportSize(1),
-                                  Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                  ReportCount(1),
-                                  ReportSize(2),
-                                  Input(Const, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                  Collection(Physical,
-                                             UsagePage(GenericDesktopCtrls),
-                                             Usage(usb_hid_report_descriptor.X),
-                                             Usage(usb_hid_report_descriptor.Y),
-                                             Usage(usb_hid_report_descriptor.Rx),
-                                             Usage(usb_hid_report_descriptor.Ry),
-                                             LogicalMinimum(-127),
-                                             LogicalMaximum(127),
-                                             ReportSize(8),
-                                             ReportCount(4),
-                                             Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                             )
-                                  )
-                       )
-        ).hex().lower(), encoding="hex")
+        record += HIDDescriptorList(report=hid_report_descriptor.createJoystickReportDescriptor().hex().lower(), encoding="hex")
         record += HIDParserVersion(0x0100)  # 1.0
         record += HIDSupervisionTimeout(0x0c80)  # 3200
         record += HIDNormallyConnectable(True)
