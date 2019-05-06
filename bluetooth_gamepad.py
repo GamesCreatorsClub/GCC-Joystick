@@ -27,10 +27,11 @@ class BTDevice(dbus.service.Object):
     P_INTR = 19  # Service port - must match port configured in SDP record#Interrrupt port
     PROFILE_DBUS_PATH = "/bluez/gcc/gcc_joy_profile"  # dbus path of  the bluez profile we will create
 
-    def __init__(self, device_name='gcc-bt-joystick', uuid="00001124-0000-1000-8000-00805f9b34fb"):
+    def __init__(self, device_name='gcc-bt-joystick', uuid="00001124-0000-1000-8000-00805f9b34fb", service_name='org.gcc.btservice'):
         print("Setting up BT device")
         self.device_name = device_name
         self.uuid = uuid
+        self.service_name = service_name
 
         self.scontrol = None
         self.ccontrol = None
@@ -46,30 +47,43 @@ class BTDevice(dbus.service.Object):
 
     # configure the bluetooth hardware device
     def init_device(self):
-        print("Configuring for name " + self.device_name)
-
         # set the device class to a keybord and joystick
         print("Bringing hcio up")
         os.system("hciconfig hcio up")
-        time.sleep(1)
+        time.sleep(1)  # Waiting for BT device to be brought up - it would be nicer to find better way than arbitrary wait
 
-        print("Setting up hcio")
+        # print("Setting up hcio")
         os.system("hciconfig hcio class 0x002508")
         os.system("hciconfig hcio name " + self.device_name)
         os.system("hciconfig hcio piscan")
 
-    @staticmethod
-    def ensure_dbus_conf_file():
-        if not os.path.exists("/etc/dbus-1/system.d/org.gcc.btservice.conf"):
+    def ensure_dbus_conf_file(self):
+        conf_file_content = "<!DOCTYPE busconfig PUBLIC \"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN\" \"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd\">"
+        conf_file_content += "<busconfig>"
+        conf_file_content += "        <policy user=\"root\">"
+        conf_file_content += "                <allow own=\"" + self.service_name + "\"/>"
+        conf_file_content += "        </policy>"
+        conf_file_content += "        <policy context=\"default\">"
+        conf_file_content += "                <deny own=\"" + self.service_name + "\"/>"
+        conf_file_content += "                <allow send_destination=\"" + self.service_name + "\"/>"
+        conf_file_content += "        </policy>"
+        conf_file_content += "</busconfig>"
+
+        do_replace = False
+        if os.path.exists("/etc/dbus-1/system.d/" + self.service_name + ".conf"):
+            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as etc_conf_file:
+                original_conf_file_content = etc_conf_file.read()
+
+            do_replace = original_conf_file_content != conf_file_content
+        else:
+            do_replace = True
+
+        if do_replace:
             try:
-                with open(sys.path[0] + "/org.gcc.btservice.conf", "r") as conf_file:
-                    conf_file_content = conf_file.read()
-
-                with open("/etc/dbus-1/system.d/org.gcc.btservice.conf", "w") as etc_conf_file:
+                with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "w") as etc_conf_file:
                     etc_conf_file.write(conf_file_content)
-
             except Exception as e:
-                sys.exit("Failed to copy org.gcc.btservice.conf to /etc/dbus-1/system.d/;" + str(e))
+                sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e))
 
     def init_profile(self):
         service_record = self.sdp_service_record()
