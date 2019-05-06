@@ -522,6 +522,38 @@ class SDPRecord:
         return xml
 
 
+def create_simple_HID_SDP_Report(service_name, service_description, provider_name, hid_report_descriptor,
+                                 subclass=Gamepad,
+                                 normally_connectable=True, virtual_cable=False, reconnect_reinitiate=False, boot_device=False):
+    record = SDPRecord()
+    record += ServiceClassIDList(HumanInterfaceDeviceService)
+    record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
+    record += BrowseGroupList(UUID(PublicBrowseGroup))
+    record += LanguageBaseAttributeIDList(
+        LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
+    record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
+    record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
+    record += ServiceName(0x0100, service_name)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+    record += ServiceDescription(0x0100, service_description)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+    record += ProviderName(0x0100, provider_name)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
+    record += HIDDeviceReleaseNumber(0x100)  # deprecated release number 1.0
+    record += HIDProfileVersion(0x0111)  # indicating version 1.11
+    record += HIDDeviceSubclass(subclass)
+    record += HIDCountryCode(0x00)
+    record += HIDVirtualCable(virtual_cable)
+    record += HIDReconnectInitiate(reconnect_reinitiate)
+    record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
+    record += HIDDescriptorList(report=hid_report_descriptor.hex().lower(), encoding="hex")
+    record += HIDParserVersion(0x0100)  # 1.0
+    record += HIDSupervisionTimeout(0x0c80)  # 3200
+    record += HIDNormallyConnectable(normally_connectable)
+    record += HIDBootDevice(boot_device)
+    record += HIDSSRHostMaxLatency(0x0640)  # 1600
+    record += HIDSSRHostMinTimeout(0x0320)  # 800
+
+    return record
+
+
 if __name__ == "__main__":
 
     # Testing creation of SDPRecord

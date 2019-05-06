@@ -221,7 +221,7 @@ class Input(_SimpleElement):
         super(Input, self).__init__(0x81, sum(options))
 
 
-def createJoystickReportDescriptor(kind=GamePad, axes=(X, Y, Rx, Ry), button_number=14):
+def create_joystick_report_descriptor(kind=GamePad, axes=(X, Y, Rx, Ry), button_number=14):
     input_report = [ReportID(InputReport)]
     input_report += [UsagePage(Button),
                      UsageMinimum(1),
@@ -264,6 +264,6 @@ if __name__ == "__main__":
 
     # Testing creation of USB HID Report Descriptor
 
-    descriptor = createJoystickReportDescriptor()
+    descriptor = create_joystick_report_descriptor(kind=GamePad, axes=(X, Y, Rx, Ry), button_number=14)
 
     print("Descriptor bytes: " + (descriptor.hex()))

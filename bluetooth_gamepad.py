@@ -106,31 +106,8 @@ class BTDevice(dbus.service.Object):
     def sdp_service_record():
         print("Creating service record")
 
-        record = SDPRecord()
-
-        record += ServiceClassIDList(HumanInterfaceDeviceService)
-        record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
-        record += BrowseGroupList(UUID(PublicBrowseGroup))
-        record += LanguageBaseAttributeIDList(LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
-        record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
-        record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
-        record += ServiceName(0x0100, "A Virtual Gamepad Controller")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += ServiceDescription(0x0100, "Keyboard > BT Gamepad")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += ProviderName(0x0100, "GCC")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += HIDDeviceReleaseNumber(0x100)  # deprecated release number 1.0
-        record += HIDProfileVersion(0x0111)  # indicating version 1.11
-        record += HIDDeviceSubclass(sdp_record.Gamepad)
-        record += HIDCountryCode(0x00)
-        record += HIDVirtualCable(False)
-        record += HIDReconnectInitiate(False)
-        record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
-        record += HIDDescriptorList(report=hid_report_descriptor.createJoystickReportDescriptor().hex().lower(), encoding="hex")
-        record += HIDParserVersion(0x0100)  # 1.0
-        record += HIDSupervisionTimeout(0x0c80)  # 3200
-        record += HIDNormallyConnectable(True)
-        record += HIDBootDevice(False)
-        record += HIDSSRHostMaxLatency(0x0640)  # 1600
-        record += HIDSSRHostMinTimeout(0x0320)  # 800
+        hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=hid_report_descriptor.GamePad, axes=(hid_report_descriptor.X, hid_report_descriptor.Y, hid_report_descriptor.Rx, hid_report_descriptor.Ry), button_number=14)
+        record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=sdp_record.Gamepad)
 
         return record.xml()
 
@@ -229,7 +206,7 @@ if __name__ == "__main__":
             if has_changes:
                 data = bytes((0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]))
 
-                # print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
+                # print("Changing data " + str(["{:02x}".format(d) for d in data]))
                 try:
                     bt.send_message(data)
                 except Exception as e:
