@@ -1,3 +1,9 @@
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 from smbus import SMBus
 import RPi.GPIO as GPIO
 import time

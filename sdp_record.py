@@ -1,148 +1,156 @@
-
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
 
 # Protocol Identifiers; Channel Identifiers, Protocol and Service Multiplexers (PSMs)?
 from functools import reduce
 
-SDP = 0x0001  # Bluetooth Core Specification
-UDP = 0x0002  # [NO USE BY PROFILES]
-RFCOMM = 0x0003  # RFCOMM with TS 07.10
-TCP = 0x0004  # [NO USE BY PROFILES]
-TCS_BIN = 0x0005  # Telephony Control Specification / TCS Binary [DEPRECATED]
-TCS_AT = 0x0006  # [NO USE BY PROFILES]
-ATT = 0x0007  # Attribute Protocol
-TCS_BIN_CORDLESS = 0x0007  # See Bluetooth Telephony Control Specification / TCS Binary, Bluetooth SIG
-OBEX = 0x0008  # IrDA Interoperability
-IP = 0x0009  # [NO USE BY PROFILES]
-FTP = 0x000A  # [NO USE BY PROFILES]
-HTTP = 0x000C  # [NO USE BY PROFILES]
-WSP = 0x000E  # [NO USE BY PROFILES]
-BNEP = 0x000F  # Bluetooth Network Encapsulation Protocol (BNEP)
-UPNP = 0x0010  # Extended Service Discovery Profile (ESDP) [DEPRECATED]
-HIDP = 0x0011  # Human Interface Device Profile (HID)
-HID_Control = 0x0011  # See Human Interface Device, Bluetooth SIG
-HardcopyControlChannel = 0x0012  # Hardcopy Cable Replacement Profile (HCRP)
-HID_Interrupt = 0x0013  # See Human Interface Device, Bluetooth SIG
-HardcopyDataChannel = 0x0014  # See Hardcopy Cable Replacement Profile (HCRP)
-UPnP = 0x0015  # See [ESDP] , Bluetooth SIG
-HardcopyNotification = 0x0016  # Hardcopy Cable Replacement Profile (HCRP)
-AVCTP = 0x0017  # Audio/Video Control Transport Protocol (AVCTP)
-AVDTP = 0x0019  # Audio/Video Distribution Transport Protocol (AVDTP)
-CMTP = 0x001B  # Common ISDN Access Profile (CIP) [DEPRECATED]
-AVCTP_Browsing = 0x001B  # See Audio/Video Remote Control Profile, Bluetooth SIG
-UDI_C_Plane = 0x001D  # See the Unrestricted Digital Information Profile [UDI], Bluetooth SIG
-MCAPControlChannel = 0x001E  # Multi-Channel Adaptation Protocol (MCAP)
-MCAPDataChannel = 0x001F  # Multi-Channel Adaptaion Protocol (MCAP)
-# ATT = 0x001F  # See Bluetooth Core Specification
-THREEDSP = 0x0021  # See 3D Synchronisation Profile, Bluetooth SIG
-LE_PSM_IPSP = 0x0023  # See Internet Protocol Support Profile (IPSP), Bluetooth SIG
-OTS = 0x0025  # See Object Transfer Service (OTS), Bluetooth SIG
 
-L2CAP = 0x0100  # Bluetooth Core Specification
+class Consts:
+    # Channel Identifiers, Protocol and Service Multiplexers (PSMs)
 
-# Channel Identifiers, Protocol and Service Multiplexers (PSMs)
+    SDP = 0x0001  # Bluetooth Core Specification
+    UDP = 0x0002  # [NO USE BY PROFILES]
+    RFCOMM = 0x0003  # RFCOMM with TS 07.10
+    TCP = 0x0004  # [NO USE BY PROFILES]
+    TCS_BIN = 0x0005  # Telephony Control Specification / TCS Binary [DEPRECATED]
+    TCS_AT = 0x0006  # [NO USE BY PROFILES]
+    ATT = 0x0007  # Attribute Protocol
+    TCS_BIN_CORDLESS = 0x0007  # See Bluetooth Telephony Control Specification / TCS Binary, Bluetooth SIG
+    OBEX = 0x0008  # IrDA Interoperability
+    IP = 0x0009  # [NO USE BY PROFILES]
+    FTP = 0x000A  # [NO USE BY PROFILES]
+    HTTP = 0x000C  # [NO USE BY PROFILES]
+    WSP = 0x000E  # [NO USE BY PROFILES]
+    BNEP = 0x000F  # Bluetooth Network Encapsulation Protocol (BNEP)
+    UPNP = 0x0010  # Extended Service Discovery Profile (ESDP) [DEPRECATED]
+    HIDP = 0x0011  # Human Interface Device Profile (HID)
+    HID_Control = 0x0011  # See Human Interface Device, Bluetooth SIG
+    HardcopyControlChannel = 0x0012  # Hardcopy Cable Replacement Profile (HCRP)
+    HID_Interrupt = 0x0013  # See Human Interface Device, Bluetooth SIG
+    HardcopyDataChannel = 0x0014  # See Hardcopy Cable Replacement Profile (HCRP)
+    UPnP = 0x0015  # See [ESDP] , Bluetooth SIG
+    HardcopyNotification = 0x0016  # Hardcopy Cable Replacement Profile (HCRP)
+    AVCTP = 0x0017  # Audio/Video Control Transport Protocol (AVCTP)
+    AVDTP = 0x0019  # Audio/Video Distribution Transport Protocol (AVDTP)
+    CMTP = 0x001B  # Common ISDN Access Profile (CIP) [DEPRECATED]
+    AVCTP_Browsing = 0x001B  # See Audio/Video Remote Control Profile, Bluetooth SIG
+    UDI_C_Plane = 0x001D  # See the Unrestricted Digital Information Profile [UDI], Bluetooth SIG
+    MCAPControlChannel = 0x001E  # Multi-Channel Adaptation Protocol (MCAP)
+    MCAPDataChannel = 0x001F  # Multi-Channel Adaptaion Protocol (MCAP)
+    # ATT = 0x001F  # See Bluetooth Core Specification
+    THREEDSP = 0x0021  # See 3D Synchronisation Profile, Bluetooth SIG
+    LE_PSM_IPSP = 0x0023  # See Internet Protocol Support Profile (IPSP), Bluetooth SIG
+    OTS = 0x0025  # See Object Transfer Service (OTS), Bluetooth SIG
 
-
-# Service class Profile Identifiers
-
-ServiceDiscoveryServerServiceClassID = 0x1000  # Bluetooth Core Specification	Service Class
-BrowseGroupDescriptorServiceClassID = 0x1001  # Bluetooth Core Specification	Service Class
-PublicBrowseGroup = 0x1002
-SerialPort = 0x1101  # Serial Port Profile (SPP) NOTE: The example SDP record in SPP v1.0 does not include a BluetoothProfileDescriptorList attribute, but some implementations may also use this UUID for the Profile Identifier.	Service Class/ Profile
-LANAccessUsingPPP = 0x1102  # LAN Access Profile [DEPRECATED] NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-DialupNetworking = 0x1103  # Dial-up Networking Profile (DUN) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-IrMCSync = 0x1104  # Synchronization Profile (SYNC) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-OBEXObjectPush = 0x1105  # Object Push Profile (OPP) NOTE: Used as both Service Class Identifier and Profile.	Service Class/ Profile
-OBEXFileTransfer = 0x1106  # File Transfer Profile (FTP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-IrMCSyncCommand = 0x1107  # Synchronization Profile (SYNC)
-Headset = 0x1108  # Headset Profile (HSP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-CordlessTelephony = 0x1109  # Cordless Telephony Profile (CTP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class/ Profile
-AudioSource = 0x110A  # Advanced Audio Distribution Profile (A2DP)	Service Class
-AudioSink = 0x110B  # Advanced Audio Distribution Profile (A2DP)	Service Class
-AV_RemoteControlTarget = 0x110C  # Audio/Video Remote Control Profile (AVRCP)	Service Class
-AdvancedAudioDistribution = 0x110D  # Advanced Audio Distribution Profile (A2DP)	Profile
-AV_RemoteControl = 0x110E  # Audio/Video Remote Control Profile (AVRCP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
-AV_RemoteControlController = 0x110F  # Audio/Video Remote Control Profile (AVRCP) NOTE: The AVRCP specification v1.3 and later require that 0x110E also be included in the ServiceClassIDList before 0x110F for backwards compatibility.	Service Class
-Intercom = 0x1110  # Intercom Profile (ICP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class
-Fax = 0x1111  # Fax Profile (FAX) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class
-Headset_Audio_Gateway_AG = 0x1112  # Headset Profile (HSP)	Service Class
-WAP = 0x1113  # Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG [DEPRECATED]	Service Class
-WAP_CLIENT = 0x1114  # Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG [DEPRECATED]	Service Class
-PANU = 0x1115  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for PANU role.	Service Class / Profile
-NAP = 0x1116  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for NAP role.	Service Class / Profile
-GN = 0x1117  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for GN role.	Service Class / Profile
-DirectPrinting = 0x1118  # Basic Printing Profile (BPP)	Service Class
-ReferencePrinting = 0x1119  # See Basic Printing Profile (BPP)	Service Class
-Basic_Imaging_Profile = 0x111A  # Basic Imaging Profile (BIP)	Profile
-ImagingResponder = 0x111B  # Basic Imaging Profile (BIP)	Service Class
-ImagingAutomaticArchive = 0x111C  # Basic Imaging Profile (BIP)	Service Class
-ImagingReferencedObjects = 0x111D  # Basic Imaging Profile (BIP)	Service Class
-Handsfree = 0x111E  # Hands-Free Profile (HFP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
-HandsfreeAudioGateway = 0x111F  # Hands-free Profile (HFP)	Service Class
-DirectPrintingReferenceObjectsService = 0x1120  # Basic Printing Profile (BPP)	Service Class
-ReflectedUI = 0x1121  # Basic Printing Profile (BPP)	Service Class
-BasicPrinting = 0x1122  # Basic Printing Profile (BPP)	Profile
-PrintingStatus = 0x1123  # Basic Printing Profile (BPP)	Service Class
-HumanInterfaceDeviceService = 0x1124  # Human Interface Device (HID) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
-HardcopyCableReplacement = 0x1125  # Hardcopy Cable Replacement Profile (HCRP)	Profile
-HCR_Print = 0x1126  # Hardcopy Cable Replacement Profile (HCRP)	Service Class
-HCR_Scan = 0x1127  # Hardcopy Cable Replacement Profile (HCRP)	Service Class
-Common_ISDN_Access = 0x1128  # Common ISDN Access Profile (CIP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class / Profile
-SIM_Access = 0x112D  # SIM Access Profile (SAP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
-Phonebook_Access_PCE = 0x112E  # Phonebook Access Profile (PBAP)	Service Class
-Phonebook_Access_PSE = 0x112F  # Phonebook Access Profile (PBAP)	Service Class
-Phonebook_Access = 0x1130  # Phonebook Access Profile (PBAP)	Profile
-Headset_HS = 0x1131  # Headset Profile (HSP) NOTE: See erratum #3507.
-# 0x1108 and 0x1203 should also be included in the ServiceClassIDList before 0x1131 for backwards compatibility.	Service Class
-Message_Access_Server = 0x1132  # Message Access Profile (MAP)	Service Class
-Message_Notification_Server = 0x1133  # Message Access Profile (MAP)	Service Class
-Message_Access_Profile = 0x1134  # Message Access Profile (MAP)	Profile
-GNSS = 0x1135  # Global Navigation Satellite System Profile (GNSS)	Profile
-GNSS_Server = 0x1136  # Global Navigation Satellite System Profile (GNSS)	Service Class
-THREED_Display = 0x1137  # 3D Synchronisation Profile (3DSP) Service Class
-THREED_Glasses = 0x1138  # 3D Synchronization Profile (3DSP) Service Class
-THREED_Synchronization = 0x1139  # 3D Synchronization Profile (3DSP) Profile
-MPS_Profile_UUID = 0x113A  # Multi-Profile Specification (MPS)	Profile
-MPS_SC_UUID = 0x113B  # Multi-Profile Specification (MPS)	Service Class
-CTN_Access_Service = 0x113C  # Calendar, Task, and Notes (CTN) Profile Service Class
-CTN_Notification_Service = 0x113D  # Calendar Tasks and Notes (CTN) Profile Service Class
-CTN_Profile = 0x113E  # Calendar Tasks and Notes (CTN) Profile	Profile
-PnPInformation = 0x1200  # Device Identification (DID) NOTE: Used as both Service Class Identifier and Profile Identifier. Service Class / Profile
-GenericNetworking = 0x1201  # N/A	Service Class
-GenericFileTransfer = 0x1202  # N/A	Service Class
-GenericAudio = 0x1203  # N/A	Service Class
-GenericTelephony = 0x1204  # N/A	Service Class
-UPNP_Service = 0x1205  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
-UPNP_IP_Service = 0x1206  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
-ESDP_UPNP_IP_PAN = 0x1300  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
-ESDP_UPNP_IP_LAP = 0x1301  # Enhanced Service Discovery Profile (ESDP)[DEPRECATED]	Service Class
-ESDP_UPNP_L2CAP = 0x1302  # Enhanced Service Discovery Profile (ESDP)[DEPRECATED]	Service Class
-VideoSource = 0x1303  # Video Distribution Profile (VDP)	Service Class
-VideoSink = 0x1304  # Video Distribution Profile (VDP)	Service Class
-VideoDistribution = 0x1305  # Video Distribution Profile (VDP)	Profile
-HDP = 0x1400  # Health Device Profile	Profile
-HDP_Source = 0x1401  # Health Device Profile (HDP)	Service Class
-HDP_Sink = 0x1402  # Health Device Profile (HDP)	Service Class
+    L2CAP = 0x0100  # Bluetooth Core Specification
 
 
-# Minor Device Class field - Peripheral Major Class
+class ClassProfileIds:
+    # Service class Profile Identifiers
 
-NotKeyboardNotPointingDevice = 0x00
-Keyboard = 0x40
-PointingDevice = 0x80
-ComboKeyboardPointingDevice = 0xC0
+    ServiceDiscoveryServerServiceClassID = 0x1000  # Bluetooth Core Specification	Service Class
+    BrowseGroupDescriptorServiceClassID = 0x1001  # Bluetooth Core Specification	Service Class
+    PublicBrowseGroup = 0x1002
+    SerialPort = 0x1101  # Serial Port Profile (SPP) NOTE: The example SDP record in SPP v1.0 does not include a BluetoothProfileDescriptorList attribute, but some implementations may also use this UUID for the Profile Identifier.	Service Class/ Profile
+    LANAccessUsingPPP = 0x1102  # LAN Access Profile [DEPRECATED] NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    DialupNetworking = 0x1103  # Dial-up Networking Profile (DUN) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    IrMCSync = 0x1104  # Synchronization Profile (SYNC) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    OBEXObjectPush = 0x1105  # Object Push Profile (OPP) NOTE: Used as both Service Class Identifier and Profile.	Service Class/ Profile
+    OBEXFileTransfer = 0x1106  # File Transfer Profile (FTP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    IrMCSyncCommand = 0x1107  # Synchronization Profile (SYNC)
+    Headset = 0x1108  # Headset Profile (HSP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    CordlessTelephony = 0x1109  # Cordless Telephony Profile (CTP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class/ Profile
+    AudioSource = 0x110A  # Advanced Audio Distribution Profile (A2DP)	Service Class
+    AudioSink = 0x110B  # Advanced Audio Distribution Profile (A2DP)	Service Class
+    AV_RemoteControlTarget = 0x110C  # Audio/Video Remote Control Profile (AVRCP)	Service Class
+    AdvancedAudioDistribution = 0x110D  # Advanced Audio Distribution Profile (A2DP)	Profile
+    AV_RemoteControl = 0x110E  # Audio/Video Remote Control Profile (AVRCP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class/ Profile
+    AV_RemoteControlController = 0x110F  # Audio/Video Remote Control Profile (AVRCP) NOTE: The AVRCP specification v1.3 and later require that 0x110E also be included in the ServiceClassIDList before 0x110F for backwards compatibility.	Service Class
+    Intercom = 0x1110  # Intercom Profile (ICP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class
+    Fax = 0x1111  # Fax Profile (FAX) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class
+    Headset_Audio_Gateway_AG = 0x1112  # Headset Profile (HSP)	Service Class
+    WAP = 0x1113  # Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG [DEPRECATED]	Service Class
+    WAP_CLIENT = 0x1114  # Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG [DEPRECATED]	Service Class
+    PANU = 0x1115  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for PANU role.	Service Class / Profile
+    NAP = 0x1116  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for NAP role.	Service Class / Profile
+    GN = 0x1117  # Personal Area Networking Profile (PAN) NOTE: Used as both Service Class Identifier and Profile Identifier for GN role.	Service Class / Profile
+    DirectPrinting = 0x1118  # Basic Printing Profile (BPP)	Service Class
+    ReferencePrinting = 0x1119  # See Basic Printing Profile (BPP)	Service Class
+    Basic_Imaging_Profile = 0x111A  # Basic Imaging Profile (BIP)	Profile
+    ImagingResponder = 0x111B  # Basic Imaging Profile (BIP)	Service Class
+    ImagingAutomaticArchive = 0x111C  # Basic Imaging Profile (BIP)	Service Class
+    ImagingReferencedObjects = 0x111D  # Basic Imaging Profile (BIP)	Service Class
+    Handsfree = 0x111E  # Hands-Free Profile (HFP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
+    HandsfreeAudioGateway = 0x111F  # Hands-free Profile (HFP)	Service Class
+    DirectPrintingReferenceObjectsService = 0x1120  # Basic Printing Profile (BPP)	Service Class
+    ReflectedUI = 0x1121  # Basic Printing Profile (BPP)	Service Class
+    BasicPrinting = 0x1122  # Basic Printing Profile (BPP)	Profile
+    PrintingStatus = 0x1123  # Basic Printing Profile (BPP)	Service Class
+    HumanInterfaceDeviceService = 0x1124  # Human Interface Device (HID) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
+    HardcopyCableReplacement = 0x1125  # Hardcopy Cable Replacement Profile (HCRP)	Profile
+    HCR_Print = 0x1126  # Hardcopy Cable Replacement Profile (HCRP)	Service Class
+    HCR_Scan = 0x1127  # Hardcopy Cable Replacement Profile (HCRP)	Service Class
+    Common_ISDN_Access = 0x1128  # Common ISDN Access Profile (CIP) NOTE: Used as both Service Class Identifier and Profile Identifier. [DEPRECATED]	Service Class / Profile
+    SIM_Access = 0x112D  # SIM Access Profile (SAP) NOTE: Used as both Service Class Identifier and Profile Identifier.	Service Class / Profile
+    Phonebook_Access_PCE = 0x112E  # Phonebook Access Profile (PBAP)	Service Class
+    Phonebook_Access_PSE = 0x112F  # Phonebook Access Profile (PBAP)	Service Class
+    Phonebook_Access = 0x1130  # Phonebook Access Profile (PBAP)	Profile
+    Headset_HS = 0x1131  # Headset Profile (HSP) NOTE: See erratum #3507.
+    # 0x1108 and 0x1203 should also be included in the ServiceClassIDList before 0x1131 for backwards compatibility.	Service Class
+    Message_Access_Server = 0x1132  # Message Access Profile (MAP)	Service Class
+    Message_Notification_Server = 0x1133  # Message Access Profile (MAP)	Service Class
+    Message_Access_Profile = 0x1134  # Message Access Profile (MAP)	Profile
+    GNSS = 0x1135  # Global Navigation Satellite System Profile (GNSS)	Profile
+    GNSS_Server = 0x1136  # Global Navigation Satellite System Profile (GNSS)	Service Class
+    THREED_Display = 0x1137  # 3D Synchronisation Profile (3DSP) Service Class
+    THREED_Glasses = 0x1138  # 3D Synchronization Profile (3DSP) Service Class
+    THREED_Synchronization = 0x1139  # 3D Synchronization Profile (3DSP) Profile
+    MPS_Profile_UUID = 0x113A  # Multi-Profile Specification (MPS)	Profile
+    MPS_SC_UUID = 0x113B  # Multi-Profile Specification (MPS)	Service Class
+    CTN_Access_Service = 0x113C  # Calendar, Task, and Notes (CTN) Profile Service Class
+    CTN_Notification_Service = 0x113D  # Calendar Tasks and Notes (CTN) Profile Service Class
+    CTN_Profile = 0x113E  # Calendar Tasks and Notes (CTN) Profile	Profile
+    PnPInformation = 0x1200  # Device Identification (DID) NOTE: Used as both Service Class Identifier and Profile Identifier. Service Class / Profile
+    GenericNetworking = 0x1201  # N/A	Service Class
+    GenericFileTransfer = 0x1202  # N/A	Service Class
+    GenericAudio = 0x1203  # N/A	Service Class
+    GenericTelephony = 0x1204  # N/A	Service Class
+    UPNP_Service = 0x1205  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
+    UPNP_IP_Service = 0x1206  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
+    ESDP_UPNP_IP_PAN = 0x1300  # Enhanced Service Discovery Profile (ESDP) [DEPRECATED]	Service Class
+    ESDP_UPNP_IP_LAP = 0x1301  # Enhanced Service Discovery Profile (ESDP)[DEPRECATED]	Service Class
+    ESDP_UPNP_L2CAP = 0x1302  # Enhanced Service Discovery Profile (ESDP)[DEPRECATED]	Service Class
+    VideoSource = 0x1303  # Video Distribution Profile (VDP)	Service Class
+    VideoSink = 0x1304  # Video Distribution Profile (VDP)	Service Class
+    VideoDistribution = 0x1305  # Video Distribution Profile (VDP)	Profile
+    HDP = 0x1400  # Health Device Profile	Profile
+    HDP_Source = 0x1401  # Health Device Profile (HDP)	Service Class
+    HDP_Sink = 0x1402  # Health Device Profile (HDP)	Service Class
 
-# Minor Class bits two to five for Peripheral Major Class
 
-UncategorizedDevice = 0x00
-Joystick = 0x04
-Gamepad = 0x08
-RemoteControl = 0x0C
-SensingDevice = 0x10
-DigitizerTablet = 0x14
-CardReader = 0x18
-DigitalPen = 0x1C
-HandheldScanner = 0x20
-HandheldGesturalInputDevice = 0x24
+class MinorDeviceClass:
+    # Minor Device Class field - Peripheral Major Class
+
+    NotKeyboardNotPointingDevice = 0x00
+    Keyboard = 0x40
+    PointingDevice = 0x80
+    ComboKeyboardPointingDevice = 0xC0
+
+    # Minor Class bits two to five for Peripheral Major Class
+
+    UncategorizedDevice = 0x00
+    Joystick = 0x04
+    Gamepad = 0x08
+    RemoteControl = 0x0C
+    SensingDevice = 0x10
+    DigitizerTablet = 0x14
+    CardReader = 0x18
+    DigitalPen = 0x1C
+    HandheldScanner = 0x20
+    HandheldGesturalInputDevice = 0x24
 
 
 #######################################################################
@@ -523,16 +531,16 @@ class SDPRecord:
 
 
 def create_simple_HID_SDP_Report(service_name, service_description, provider_name, hid_report_descriptor,
-                                 subclass=Gamepad,
+                                 subclass=MinorDeviceClass.Gamepad,
                                  normally_connectable=True, virtual_cable=False, reconnect_reinitiate=False, boot_device=False):
     record = SDPRecord()
-    record += ServiceClassIDList(HumanInterfaceDeviceService)
-    record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
-    record += BrowseGroupList(UUID(PublicBrowseGroup))
+    record += ServiceClassIDList(ClassProfileIds.HumanInterfaceDeviceService)
+    record += ProtocolDescriptorList(Sequence(UUID(Consts.L2CAP), UInt16(Consts.HIDP)), Sequence(UUID(Consts.HIDP)))
+    record += BrowseGroupList(UUID(ClassProfileIds.PublicBrowseGroup))
     record += LanguageBaseAttributeIDList(
         LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
-    record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
-    record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
+    record += BluetoothProfileDescriptorList(Sequence(UUID(ClassProfileIds.HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
+    record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(Consts.L2CAP), UInt16(Consts.HID_Interrupt)), Sequence(UUID(Consts.HIDP))))
     record += ServiceName(0x0100, service_name)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
     record += ServiceDescription(0x0100, service_description)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
     record += ProviderName(0x0100, provider_name)  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
@@ -558,63 +566,15 @@ if __name__ == "__main__":
 
     # Testing creation of SDPRecord
 
-    from hid_report_descriptor import *
+    import hid_report_descriptor
+    from hid_report_descriptor import Usage
 
-    record = SDPRecord()
+    hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.GamePad,
+                                                                             axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry),
+                                                                             button_number=14)
 
-    record += ServiceClassIDList(HumanInterfaceDeviceService)
-    record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
-    record += BrowseGroupList(UUID(PublicBrowseGroup))
-    record += LanguageBaseAttributeIDList(LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
-    record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
-    record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
-    record += ServiceName(0x0100, "A Virtual Gamepad Controller")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-    record += ServiceDescription(0x0100, "Keyboard > BT Gamepad")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-    record += ProviderName(0x0100, "GCC")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-    record += HIDDeviceReleaseNumber(0x100)  # deprecated release number 1.0
-    record += HIDProfileVersion(0x0111)  # indicating version 1.11
-    record += HIDDeviceSubclass(Gamepad)
-    record += HIDCountryCode(0x00)
-    record += HIDVirtualCable(False)
-    record += HIDReconnectInitiate(False)
-    record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
-    record += HIDDescriptorList(report=USBHIDReportDescriptor(
-                    UsagePage(GenericDesktopCtrls),
-                    Usage(GamePad),
-                    Collection(Application,
-                               Collection(Report,
-                                          ReportID(InputReport),
-                                          UsagePage(Button),
-                                          UsageMinimum(0x01),
-                                          UsageMaximum(0x02),
-                                          LogicalMinimum(0),
-                                          LogicalMaximum(1),
-                                          ReportCount(14),
-                                          ReportSize(1),
-                                          Input(Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                          ReportCount(1),
-                                          ReportSize(2),
-                                          Input(Const, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                          Collection(Physical,
-                                                     UsagePage(GenericDesktopCtrls),
-                                                     Usage(X),
-                                                     Usage(Y),
-                                                     Usage(Rx),
-                                                     Usage(Ry),
-                                                     LogicalMinimum(-127),
-                                                     LogicalMaximum(127),
-                                                     ReportSize(8),
-                                                     ReportCount(4),
-                                                     Input(Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                          )
-                               )
-                    )
-                ).hex().lower(), encoding="hex")
-    record += HIDParserVersion(0x0100)  # 1.0
-    record += HIDSupervisionTimeout(0x0c80)  # 3200
-    record += HIDNormallyConnectable(True)
-    record += HIDBootDevice(False)
-    record += HIDSSRHostMaxLatency(0x0640)  # 1600
-    record += HIDSSRHostMinTimeout(0x0320)  # 800
+    record = create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC",
+                                          hid_descriptor,
+                                          subclass=MinorDeviceClass.Gamepad)
 
     print("Record=\n" + record.xml())

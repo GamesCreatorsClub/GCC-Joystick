@@ -1,3 +1,9 @@
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 class Joystick:
     """
     A fake joystick implementation for testing: it just returns continuous axis movements and button presses.

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 # Based on https://github.com/yaptb/BlogCode
 
 import os
@@ -56,6 +62,12 @@ class BTDevice(dbus.service.Object):
         os.system("hciconfig hcio piscan")
 
     def ensure_dbus_conf_file(self):
+        def compare_old_and_new(old):
+            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as etc_conf_file:
+                original_conf_file_content = etc_conf_file.read()
+
+            return original_conf_file_content == conf_file_content
+
         conf_file_content = "<!DOCTYPE busconfig PUBLIC \"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN\" \"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd\">"
         conf_file_content += "<busconfig>"
         conf_file_content += "        <policy user=\"root\">"
@@ -67,14 +79,9 @@ class BTDevice(dbus.service.Object):
         conf_file_content += "        </policy>"
         conf_file_content += "</busconfig>"
 
-        do_replace = False
-        if os.path.exists("/etc/dbus-1/system.d/" + self.service_name + ".conf"):
-            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as etc_conf_file:
-                original_conf_file_content = etc_conf_file.read()
+        config_exists = os.path.exists("/etc/dbus-1/system.d/" + self.service_name + ".conf")
 
-            do_replace = original_conf_file_content != conf_file_content
-        else:
-            do_replace = True
+        do_replace = not config_exists or not compare_old_and_new(conf_file_content)
 
         if do_replace:
             try:
