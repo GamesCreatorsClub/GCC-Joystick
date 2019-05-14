@@ -19,7 +19,8 @@ from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, Br
     HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
     UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
 from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
-    ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical
+    ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical, \
+    USBHIDReportDescriptor
 
 from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
 
@@ -126,7 +127,7 @@ class BTDevice(dbus.service.Object):
         record += HIDVirtualCable(False)
         record += HIDReconnectInitiate(False)
         record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
-        record += HIDDescriptorList(report=usb_hid_report_descriptor.USBHIDReportDescriptor(
+        record += HIDDescriptorList(report=USBHIDReportDescriptor(
             UsagePage(GenericDesktopCtrls),
             Usage(usb_hid_report_descriptor.GamePad),
             Collection(usb_hid_report_descriptor.Application,
