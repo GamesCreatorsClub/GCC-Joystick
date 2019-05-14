@@ -569,7 +569,7 @@ if __name__ == "__main__":
     import hid_report_descriptor
     from hid_report_descriptor import Usage
 
-    hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.GamePad,
+    hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad,
                                                                              axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry),
                                                                              button_number=14)
 

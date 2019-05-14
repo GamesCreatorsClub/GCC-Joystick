@@ -22,6 +22,8 @@ from dbus.mainloop.glib import DBusGMainLoop
 from joystick import Joystick
 
 from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
+from hid_report_descriptor import Usage
+from sdp_record import MinorDeviceClass
 
 
 class BTDevice(dbus.service.Object):
@@ -62,11 +64,11 @@ class BTDevice(dbus.service.Object):
         os.system("hciconfig hcio piscan")
 
     def ensure_dbus_conf_file(self):
-        def compare_old_and_new(old):
-            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as etc_conf_file:
-                original_conf_file_content = etc_conf_file.read()
+        def compare_old_and_new(old_content):
+            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as existing_etc_conf_file:
+                original_conf_file_content = existing_etc_conf_file.read()
 
-            return original_conf_file_content == conf_file_content
+            return original_conf_file_content == old_content
 
         conf_file_content = "<!DOCTYPE busconfig PUBLIC \"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN\" \"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd\">"
         conf_file_content += "<busconfig>"
@@ -87,8 +89,8 @@ class BTDevice(dbus.service.Object):
             try:
                 with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "w") as etc_conf_file:
                     etc_conf_file.write(conf_file_content)
-            except Exception as e:
-                sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e))
+            except Exception as e1:
+                sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e1))
 
     def init_profile(self):
         service_record = self.sdp_service_record()
@@ -109,8 +111,8 @@ class BTDevice(dbus.service.Object):
     def sdp_service_record():
         print("Creating service record")
 
-        hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=hid_report_descriptor.GamePad, axes=(hid_report_descriptor.X, hid_report_descriptor.Y, hid_report_descriptor.Rx, hid_report_descriptor.Ry), button_number=14)
-        record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=sdp_record.Gamepad)
+        hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), button_number=14)
+        record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=MinorDeviceClass.Gamepad)
 
         return record.xml()
 
