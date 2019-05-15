@@ -5,6 +5,8 @@
 #
 
 # Protocol Identifiers; Channel Identifiers, Protocol and Service Multiplexers (PSMs)?
+
+
 from functools import reduce
 
 
@@ -566,8 +568,8 @@ if __name__ == "__main__":
 
     # Testing creation of SDPRecord
 
-    import hid_report_descriptor
-    from hid_report_descriptor import Usage
+    from bt_joystick import hid_report_descriptor
+    from bt_joystick.hid_report_descriptor import Usage
 
     hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad,
                                                                              axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry),

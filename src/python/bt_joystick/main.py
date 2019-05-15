@@ -6,22 +6,32 @@
 # MIT License
 #
 
-# Based on https://github.com/yaptb/BlogCode
 
-import argparse
-import importlib
-import os
-import sys
 import time
 
 from dbus.mainloop.glib import DBusGMainLoop
-from bt_service import BTDevice
+from bt_joystick import BTDevice
 
-if not os.geteuid() == 0:
-    sys.exit("Only root can run this script")
+# if not os.geteuid() == 0:
+#     sys.exit("Only root can run this script")
 
 
-class BluetoothJoystick:
+class Joystick:
+
+    def __init__(self):
+        pass
+
+    def readAxis(self):
+        raise NotImplementedError()
+
+    def readButtons(self):
+        raise NotImplementedError()
+
+    # TODO Add way for Joystick implementation to pass 'description' to Main class
+    # so it can create appropriate SDP record and handle results
+
+
+class BluetoothJoystickDeviceMain:
     def __init__(self, joystick):
         self.joystick = joystick
 
@@ -56,6 +66,7 @@ class BluetoothJoystick:
                 new_button_bits_1 = 0
                 new_button_bits_2 = 0
 
+                # TODO this should really use Joystick description to determine which buttons are sent as which
                 # 'trigger', 'tl', 'tr', 'thumb', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'thumbl', 'thumbr'
                 if joystick_buttons['dpad_up']:
                     new_button_bits_1 |= 1

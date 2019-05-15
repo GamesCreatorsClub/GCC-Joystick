@@ -1,14 +1,18 @@
+#!/usr/bin/env python3
+
 #
 # Copyright 2019 Games Creators Club
 #
 # MIT License
 #
 
-from smbus import SMBus
+import os
+import sys
 import RPi.GPIO as GPIO
 import time
 
-from joystick import Joystick
+from smbus import SMBus
+from bt_joystick import Joystick
 
 
 class ExplorerPHatJoystick(Joystick):
@@ -127,12 +131,10 @@ class ExplorerPHatJoystick(Joystick):
 
 
 if __name__ == "__main__":
+    if not os.geteuid() == 0:
+        sys.exit("Only root can run this script")
 
-    import sys, os
-    sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+    from bt_joystick import BluetoothJoystickDeviceMain
 
-    from bluetooth_joystick import BluetoothJoystick
-    from exporer_phat_joystick import ExplorerPHatJoystick
-
-    bluetooth_joystick = BluetoothJoystick(ExplorerPHatJoystick())
+    bluetooth_joystick = BluetoothJoystickDeviceMain(ExplorerPHatJoystick())
     bluetooth_joystick.run()
