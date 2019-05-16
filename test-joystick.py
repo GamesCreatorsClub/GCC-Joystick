@@ -1,3 +1,9 @@
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 import time
 from fake_joystick import Joystick
 

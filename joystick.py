@@ -1,6 +1,13 @@
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 from smbus import SMBus
 import RPi.GPIO as GPIO
 import time
+
 
 class Joystick:
     # Based on https://github.com/pimoroni/explorer-hat/blob/master/library/explorerhat/ads1015.py

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
+
 # Based on https://github.com/yaptb/BlogCode
 
 import os
@@ -8,21 +14,16 @@ import time
 import socket
 
 import sdp_record
-import usb_hid_report_descriptor
+import hid_report_descriptor
 
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 
 from joystick import Joystick
-from sdp_record import SDPRecord, ServiceClassIDList, ProtocolDescriptorList, BrowseGroupList, LanguageBaseAttributeIDList, BluetoothProfileDescriptorList, AdditionalProtocolDescriptorLists, \
-    ServiceName, ServiceDescription, ProviderName, HIDDeviceReleaseNumber, HIDProfileVersion, HIDDeviceSubclass, HIDCountryCode, HIDVirtualCable, HIDReconnectInitiate, HIDLANGIDBaseList, \
-    HIDDescriptorList, HIDParserVersion, HIDSupervisionTimeout, HIDNormallyConnectable, HIDBootDevice, HIDSSRHostMaxLatency, HIDSSRHostMinTimeout, HumanInterfaceDeviceService, Sequence, UUID, L2CAP, \
-    UInt16, HIDP, PublicBrowseGroup, LanguageBase, HID_Interrupt, HIDLANGIDBase
-from usb_hid_report_descriptor import UsagePage, Usage, Collection, GenericDesktopCtrls, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition, \
-    ReportID, InputReport, UsageMinimum, UsageMaximum, LogicalMinimum, LogicalMaximum, ReportCount, ReportSize, Input, Const, Physical, \
-    USBHIDReportDescriptor
 
 from bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
+from hid_report_descriptor import Usage
+from sdp_record import MinorDeviceClass
 
 
 class BTDevice(dbus.service.Object):
@@ -63,6 +64,12 @@ class BTDevice(dbus.service.Object):
         os.system("hciconfig hcio piscan")
 
     def ensure_dbus_conf_file(self):
+        def compare_old_and_new(old_content):
+            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as existing_etc_conf_file:
+                original_conf_file_content = existing_etc_conf_file.read()
+
+            return original_conf_file_content == old_content
+
         conf_file_content = "<!DOCTYPE busconfig PUBLIC \"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN\" \"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd\">"
         conf_file_content += "<busconfig>"
         conf_file_content += "        <policy user=\"root\">"
@@ -74,21 +81,16 @@ class BTDevice(dbus.service.Object):
         conf_file_content += "        </policy>"
         conf_file_content += "</busconfig>"
 
-        do_replace = False
-        if os.path.exists("/etc/dbus-1/system.d/" + self.service_name + ".conf"):
-            with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "r") as etc_conf_file:
-                original_conf_file_content = etc_conf_file.read()
+        config_exists = os.path.exists("/etc/dbus-1/system.d/" + self.service_name + ".conf")
 
-            do_replace = original_conf_file_content != conf_file_content
-        else:
-            do_replace = True
+        do_replace = not config_exists or not compare_old_and_new(conf_file_content)
 
         if do_replace:
             try:
                 with open("/etc/dbus-1/system.d/" + self.service_name + ".conf", "w") as etc_conf_file:
                     etc_conf_file.write(conf_file_content)
-            except Exception as e:
-                sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e))
+            except Exception as e1:
+                sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e1))
 
     def init_profile(self):
         service_record = self.sdp_service_record()
@@ -109,62 +111,8 @@ class BTDevice(dbus.service.Object):
     def sdp_service_record():
         print("Creating service record")
 
-        record = SDPRecord()
-
-        record += ServiceClassIDList(HumanInterfaceDeviceService)
-        record += ProtocolDescriptorList(Sequence(UUID(L2CAP), UInt16(HIDP)), Sequence(UUID(HIDP)))
-        record += BrowseGroupList(UUID(PublicBrowseGroup))
-        record += LanguageBaseAttributeIDList(LanguageBase('en', 0x006a, 0x0100))  # 'en' (0x656e), 0x006A is UTF-8 encoding, 0x0100 represents attribute ID offset used for ServiceName, ServiceDescriptor and ProviderName attributes!
-        record += BluetoothProfileDescriptorList(Sequence(UUID(HumanInterfaceDeviceService), UInt16(0x0100)))  # 0x0100 indicating version 1.0
-        record += AdditionalProtocolDescriptorLists(Sequence(Sequence(UUID(L2CAP), UInt16(HID_Interrupt)), Sequence(UUID(HIDP))))
-        record += ServiceName(0x0100, "A Virtual Gamepad Controller")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += ServiceDescription(0x0100, "Keyboard > BT Gamepad")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += ProviderName(0x0100, "GCC")  # 0x0100 is offset from LanguageBaseAttributeIDList for 'en' language (0x656e)
-        record += HIDDeviceReleaseNumber(0x100)  # deprecated release number 1.0
-        record += HIDProfileVersion(0x0111)  # indicating version 1.11
-        record += HIDDeviceSubclass(sdp_record.Gamepad)
-        record += HIDCountryCode(0x00)
-        record += HIDVirtualCable(False)
-        record += HIDReconnectInitiate(False)
-        record += HIDLANGIDBaseList(HIDLANGIDBase(0x0409, 0x0100))  # 0x0409 per http://info.linuxoid.in/datasheets/USB%202.0a/USB_LANGIDs.pdf is English (United States)
-        record += HIDDescriptorList(report=USBHIDReportDescriptor(
-            UsagePage(GenericDesktopCtrls),
-            Usage(usb_hid_report_descriptor.GamePad),
-            Collection(usb_hid_report_descriptor.Application,
-                       Collection(usb_hid_report_descriptor.Report,
-                                  ReportID(InputReport),
-                                  UsagePage(usb_hid_report_descriptor.Button),
-                                  UsageMinimum(0x01),
-                                  UsageMaximum(0x02),
-                                  LogicalMinimum(0),
-                                  LogicalMaximum(1),
-                                  ReportCount(14),
-                                  ReportSize(1),
-                                  Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                  ReportCount(1),
-                                  ReportSize(2),
-                                  Input(Const, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                  Collection(Physical,
-                                             UsagePage(GenericDesktopCtrls),
-                                             Usage(usb_hid_report_descriptor.X),
-                                             Usage(usb_hid_report_descriptor.Y),
-                                             Usage(usb_hid_report_descriptor.Rx),
-                                             Usage(usb_hid_report_descriptor.Ry),
-                                             LogicalMinimum(-127),
-                                             LogicalMaximum(127),
-                                             ReportSize(8),
-                                             ReportCount(4),
-                                             Input(usb_hid_report_descriptor.Data, Var, Abs, NoWrap, Linear, PreferredState, NoNullPosition),
-                                             )
-                                  )
-                       )
-        ).hex().lower(), encoding="hex")
-        record += HIDParserVersion(0x0100)  # 1.0
-        record += HIDSupervisionTimeout(0x0c80)  # 3200
-        record += HIDNormallyConnectable(True)
-        record += HIDBootDevice(False)
-        record += HIDSSRHostMaxLatency(0x0640)  # 1600
-        record += HIDSSRHostMinTimeout(0x0320)  # 800
+        hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), button_number=14)
+        record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=MinorDeviceClass.Gamepad)
 
         return record.xml()
 
@@ -263,7 +211,7 @@ if __name__ == "__main__":
             if has_changes:
                 data = bytes((0xA1, 0x01, button_bits_1, button_bits_2, axis[0], axis[1], axis[2], axis[3]))
 
-                # print("Changing data " + str(data) + "; changed axis " + str(change_axis) + " for " + str(change_value) + " and got " + str(v))
+                # print("Changing data " + str(["{:02x}".format(d) for d in data]))
                 try:
                     bt.send_message(data)
                 except Exception as e:

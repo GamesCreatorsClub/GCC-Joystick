@@ -1,3 +1,8 @@
+#
+# Copyright 2019 Games Creators Club
+#
+# MIT License
+#
 
 # Major Service Class
 
