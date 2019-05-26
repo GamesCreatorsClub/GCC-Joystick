@@ -32,7 +32,9 @@ class BTDevice(dbus.service.Object):
     def __init__(self, device_name='gcc-bt-joystick',
                  device_class=LIMITED_DISCOVERABLE_MODE | PERIPHERAL | GAMEPAD,
                  uuid="00001124-0000-1000-8000-00805f9b34fb",
-                 service_name='org.gcc.btservice'):
+                 service_name='org.gcc.btservice',
+                 service_record=None,
+                 hid_descriptor=None):
 
         self.device_name = device_name
         self.device_class = device_class
@@ -43,6 +45,14 @@ class BTDevice(dbus.service.Object):
         self.ccontrol = None
         self.sinterrupt = None
         self.cinterrupt = None
+
+        # create default HID descriptor and SDP record if not specified
+        if service_record is not None:
+            self.service_record = service_record
+        else:
+            if hid_descriptor is None:
+                hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), button_number=14)
+            self.service_record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=MinorDeviceClass.Gamepad)
 
         self.init_device()
         self.init_profile()
@@ -91,10 +101,8 @@ class BTDevice(dbus.service.Object):
                 sys.exit("Failed to create/replace " + self.service_name + ".conf in /etc/dbus-1/system.d/;" + str(e1))
 
     def init_profile(self):
-        service_record = self.sdp_service_record()
-
         opts = {
-            "ServiceRecord": service_record,
+            "ServiceRecord": self.service_record.xml(),
             "Role": "server",
             "RequireAuthentication": False,
             "RequireAuthorization": False
@@ -104,15 +112,6 @@ class BTDevice(dbus.service.Object):
         manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez"), "org.bluez.ProfileManager1")
 
         manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, self.uuid, opts)
-
-    @staticmethod
-    def sdp_service_record():
-        print("Creating service record")
-
-        hid_descriptor = hid_report_descriptor.create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), button_number=14)
-        record = sdp_record.create_simple_HID_SDP_Report("A Virtual Gamepad Controller", "Keyboard > BT Gamepad", "GCC", hid_descriptor, subclass=MinorDeviceClass.Gamepad)
-
-        return record.xml()
 
     def listen(self):
         self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
@@ -133,3 +132,12 @@ class BTDevice(dbus.service.Object):
 
     def send_message(self, message):
         self.cinterrupt.send(message)
+
+    def send_values(self, button_bits, axis_values):
+        """
+        Convenience function to send a message with button and axis values
+        :param button_bits: bitmap for the button states, an integer with at most 16 bits
+        :param axis_values: list of axis values (each in -127..127)
+        """
+        self.send_message(bytes((0xA1, 0x01, button_bits & 255, button_bits >> 8, *[v if v >= 0 else v + 256 for v in axis_values])))
+
