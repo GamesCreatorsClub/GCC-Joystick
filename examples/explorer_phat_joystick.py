@@ -1,15 +1,21 @@
+#!/usr/bin/env python3
+
 #
 # Copyright 2019 Games Creators Club
 #
 # MIT License
 #
 
-from smbus import SMBus
+import os
+import sys
 import RPi.GPIO as GPIO
 import time
 
+from smbus import SMBus
+from bt_joystick import Joystick
 
-class Joystick:
+
+class ExplorerPHatJoystick(Joystick):
     # Based on https://github.com/pimoroni/explorer-hat/blob/master/library/explorerhat/ads1015.py
 
     UP = 18
@@ -49,18 +55,18 @@ class Joystick:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
-        GPIO.setup(Joystick.UP, GPIO.IN)
-        GPIO.setup(Joystick.DOWN, GPIO.IN)
-        GPIO.setup(Joystick.LEFT, GPIO.IN)
-        GPIO.setup(Joystick.RIGHT, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.UP, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.DOWN, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.LEFT, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.RIGHT, GPIO.IN)
 
-        GPIO.setup(Joystick.LB, GPIO.IN)
-        GPIO.setup(Joystick.RB, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.LB, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.RB, GPIO.IN)
 
-        GPIO.setup(Joystick.TRIGGER, GPIO.IN)
-        GPIO.setup(Joystick.TR, GPIO.IN)
-        GPIO.setup(Joystick.TL, GPIO.IN)
-        GPIO.setup(Joystick.THUMB, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.TRIGGER, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.TR, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.TL, GPIO.IN)
+        GPIO.setup(ExplorerPHatJoystick.THUMB, GPIO.IN)
 
     def _read_se_adc(self, channel=1, programmable_gain=6144, samples_per_second=1600):
         # sane defaults
@@ -74,12 +80,12 @@ class Joystick:
         config |= 0x8000
 
         # write single conversion flag
-        self.i2c.write_i2c_block_data(self.address, Joystick.REG_CFG, [(config >> 8) & 0xFF, config & 0xFF])
+        self.i2c.write_i2c_block_data(self.address, ExplorerPHatJoystick.REG_CFG, [(config >> 8) & 0xFF, config & 0xFF])
 
         delay = (1.0 / samples_per_second) + 0.0001
         time.sleep(delay)
 
-        data = self.i2c.read_i2c_block_data(self.address, Joystick.REG_CONV)
+        data = self.i2c.read_i2c_block_data(self.address, ExplorerPHatJoystick.REG_CONV)
 
         return (((data[0] << 8) | data[1]) >> 4) * programmable_gain / 2048.0 / 1000.0
 
@@ -108,17 +114,27 @@ class Joystick:
         return self.axis
 
     def readButtons(self):
-        self.buttons['dpad_up'] = not bool(GPIO.input(Joystick.UP))
-        self.buttons['dpad_down'] = not bool(GPIO.input(Joystick.DOWN))
-        self.buttons['dpad_left'] = not bool(GPIO.input(Joystick.LEFT))
-        self.buttons['dpad_right'] = not bool(GPIO.input(Joystick.RIGHT))
+        self.buttons['dpad_up'] = not bool(GPIO.input(ExplorerPHatJoystick.UP))
+        self.buttons['dpad_down'] = not bool(GPIO.input(ExplorerPHatJoystick.DOWN))
+        self.buttons['dpad_left'] = not bool(GPIO.input(ExplorerPHatJoystick.LEFT))
+        self.buttons['dpad_right'] = not bool(GPIO.input(ExplorerPHatJoystick.RIGHT))
 
-        self.buttons['thumbl'] = not bool(GPIO.input(Joystick.LB))
-        self.buttons['thumbr'] = not bool(GPIO.input(Joystick.RB))
+        self.buttons['thumbl'] = not bool(GPIO.input(ExplorerPHatJoystick.LB))
+        self.buttons['thumbr'] = not bool(GPIO.input(ExplorerPHatJoystick.RB))
 
-        self.buttons['trigger'] = not bool(GPIO.input(Joystick.TRIGGER))
-        self.buttons['tl'] = not bool(GPIO.input(Joystick.TL))
-        self.buttons['tr'] = not bool(GPIO.input(Joystick.TR))
-        self.buttons['thumb'] = not bool(GPIO.input(Joystick.THUMB))
+        self.buttons['trigger'] = not bool(GPIO.input(ExplorerPHatJoystick.TRIGGER))
+        self.buttons['tl'] = not bool(GPIO.input(ExplorerPHatJoystick.TL))
+        self.buttons['tr'] = not bool(GPIO.input(ExplorerPHatJoystick.TR))
+        self.buttons['thumb'] = not bool(GPIO.input(ExplorerPHatJoystick.THUMB))
 
         return self.buttons
+
+
+if __name__ == "__main__":
+    if not os.geteuid() == 0:
+        sys.exit("Only root can run this script")
+
+    from bt_joystick import BluetoothJoystickDeviceMain
+
+    bluetooth_joystick = BluetoothJoystickDeviceMain(ExplorerPHatJoystick())
+    bluetooth_joystick.run()

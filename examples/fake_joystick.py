@@ -4,7 +4,7 @@
 # MIT License
 #
 
-class Joystick:
+class FakeJoystick:
     """
     A fake joystick implementation for testing: it just returns continuous axis movements and button presses.
     """
@@ -38,3 +38,14 @@ class Joystick:
         for b in self.buttons:
             self.buttons[b] = not self.buttons[b]
         return self.buttons
+
+
+if __name__ == "__main__":
+
+    import sys, os
+    sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+
+    from bluetooth_joystick import BluetoothJoystick
+
+    bluetooth_joystick = BluetoothJoystick(FakeJoystick())
+    bluetooth_joystick.run()
