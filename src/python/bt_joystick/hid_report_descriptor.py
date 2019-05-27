@@ -54,11 +54,24 @@ class Collection(_Elements):
 class _SimpleElement(_Element):
     def __init__(self, code, value):
         self.code = code
-        self.value = value if 0 <= value <= 255 else (256 + value)
+        if -127 <= value < 0:
+            self.value = value + 256
+        elif value < -255:
+            self.value = value + 65536
+        else:
+            self.value = value
 
     def values(self):
-        yield self.code
-        yield self.value
+        # Handle two different sizes: 1 byte for -127..127, and 2 for -255..255
+        # (assuming the supplied code is for the first one, so adding 1 to it specifies the 2-byte version
+        # - the first two bits in the code actually specify the size)
+        if self.value > 255:
+            yield self.code + 1
+            yield self.value & 255
+            yield self.value >> 8
+        else:
+            yield self.code
+            yield self.value
 
 
 class UsagePage(_SimpleElement):
@@ -185,6 +198,16 @@ class LogicalMaximum(_SimpleElement):
         super(LogicalMaximum, self).__init__(0x25, value)  # TODO if value is less than -128 or over 127 it is code 0x26 and two bytes - little endian
 
 
+class PhysicalMinimum(_SimpleElement):
+    def __init__(self, value):
+        super(PhysicalMinimum, self).__init__(0x35, value)
+
+
+class PhysicalMaximum(_SimpleElement):
+    def __init__(self, value):
+        super(PhysicalMaximum, self).__init__(0x45, value)
+
+
 class ReportCount(_SimpleElement):
     def __init__(self, count):
         super(ReportCount, self).__init__(0x95, count)
@@ -193,6 +216,15 @@ class ReportCount(_SimpleElement):
 class ReportSize(_SimpleElement):
     def __init__(self, size):
         super(ReportSize, self).__init__(0x75, size)
+
+
+class Unit(_SimpleElement):
+    EnglishRotationDegrees = 0x14
+    CM = 0x11
+    SIRad = 0x21
+
+    def __init__(self, value):
+        super(Unit, self).__init__(0x65, value)
 
 
 class Input(_SimpleElement):
@@ -221,7 +253,7 @@ class Input(_SimpleElement):
         super(Input, self).__init__(0x81, sum(options))
 
 
-def create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), button_number=14):
+def create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), hat_switch=False, button_number=14):
     input_report = [ReportID(ReportID.InputReport)]
     input_report += [UsagePage(UsagePage.Button),
                      UsageMinimum(1),
@@ -249,6 +281,25 @@ def create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y
                             ]
 
         input_report += [Collection(Collection.Physical, *axes_collection)]
+
+    if hat_switch:
+        hat_collection = [UsagePage(UsagePage.GenericDesktopCtrls)]
+        # 4 bits for the hat switch, 9 possible positions, 0..315 degrees
+        hat_collection += [Usage(Usage.HatSwitch),
+                           LogicalMinimum(0),
+                           LogicalMaximum(8), #7
+                           PhysicalMinimum(0),
+                           PhysicalMaximum(315), #270), #315
+                           Unit(Unit.EnglishRotationDegrees),
+                           ReportSize(4),
+                           ReportCount(1),
+                           Input(Input.Var, Input.Abs, Input.NullState)]
+        # pad 4 bits
+        hat_collection += [ReportCount(1),
+                           ReportSize(4),
+                           Input(Input.Const, Input.Var, Input.Abs, Input.NoWrap, Input.Linear, Input.PreferredState, Input.NoNullPosition)]
+
+        input_report += [Collection(Collection.Physical, *hat_collection)]
 
     report = USBHIDReportDescriptor(
             UsagePage(UsagePage.GenericDesktopCtrls),

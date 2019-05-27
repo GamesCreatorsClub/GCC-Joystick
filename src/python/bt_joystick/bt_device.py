@@ -133,11 +133,12 @@ class BTDevice(dbus.service.Object):
     def send_message(self, message):
         self.cinterrupt.send(message)
 
-    def send_values(self, button_bits, axis_values):
+    def send_values(self, button_bits, axis_values, hat_value):
         """
-        Convenience function to send a message with button and axis values
+        Convenience function to send a message with button states, axis values and hat switch state
         :param button_bits: bitmap for the button states, an integer with at most 16 bits
         :param axis_values: list of axis values (each in -127..127)
+        :param hat_value: value for the hat switch: 1..8 for top, top right, right, ..., top left, or 9 for the middle (not pressed) position
         """
-        self.send_message(bytes((0xA1, 0x01, button_bits & 255, button_bits >> 8, *[v if v >= 0 else v + 256 for v in axis_values])))
+        self.send_message(bytes((0xA1, 0x01, button_bits & 255, button_bits >> 8, *[v if v >= 0 else v + 256 for v in axis_values], hat_value)))
 
