@@ -52,12 +52,28 @@ class Collection(_Elements):
 
 
 class _SimpleElement(_Element):
+    UsagePage = 0x04
+    Usage = 0x08
+    UsageMinimum = 0x18
+    UsageMaximum = 0x28
+    LogicalMinimum = 0x14
+    LogicalMaximum = 0x24
+    PhysicalMinimum = 0x34
+    PhysicalMaximum = 0x44
+    Unit = 0x64
+    ReportSize = 0x74
+    Input = 0x80
+    ReportID = 0x84
+    ReportCount = 0x94
+
     def __init__(self, code, value):
         self.code = code
         if -127 <= value < 0:
             self.value = value + 256
-        elif value < -255:
+        elif -32768 <= value < -255:
             self.value = value + 65536
+        elif -0x80000000 <= value < -32768:
+            self.value = value + 0x100000000
         else:
             self.value = value
 
@@ -65,12 +81,20 @@ class _SimpleElement(_Element):
         # Handle two different sizes: 1 byte for -127..127, and 2 for -255..255
         # (assuming the supplied code is for the first one, so adding 1 to it specifies the 2-byte version
         # - the first two bits in the code actually specify the size)
-        if self.value > 255:
-            yield self.code + 1
+        if self.value is None:
+            yield self.code
+        elif self.value > 65535:
+            yield self.code + 3
+            yield self.value & 255
+            yield (self.value >> 8) & 255
+            yield (self.value >> 16) & 255
+            yield (self.value >> 24) & 255
+        elif self.value > 255:
+            yield self.code + 2
             yield self.value & 255
             yield self.value >> 8
         else:
-            yield self.code
+            yield self.code + 1
             yield self.value
 
 
@@ -93,7 +117,7 @@ class UsagePage(_SimpleElement):
     AlphanumericDisplay = 0x14
 
     def __init__(self, kind):
-        super(UsagePage, self).__init__(0x05, kind)
+        super(UsagePage, self).__init__(_SimpleElement.UsagePage, kind)
 
 
 class Usage(_SimpleElement):
@@ -166,7 +190,7 @@ class Usage(_SimpleElement):
     SysDisplayLCDAutoscale = 0xB7
 
     def __init__(self, kind):
-        super(Usage, self).__init__(0x09, kind)
+        super(Usage, self).__init__(_SimpleElement.Usage, kind)
 
 
 class ReportID(_SimpleElement):
@@ -175,47 +199,47 @@ class ReportID(_SimpleElement):
     FeatureReport = 0x03
 
     def __init__(self, report_type):
-        super(ReportID, self).__init__(0x85, report_type)
+        super(ReportID, self).__init__(_SimpleElement.ReportID, report_type)
 
 
 class UsageMinimum(_SimpleElement):
     def __init__(self, value):
-        super(UsageMinimum, self).__init__(0x19, value)  # TODO if value is less than -128 or over 127 it is code 0x1A and two bytes - little endian
+        super(UsageMinimum, self).__init__(_SimpleElement.UsageMinimum, value)  # TODO if value is less than -128 or over 127 it is code 0x1A and two bytes - little endian
 
 
 class UsageMaximum(_SimpleElement):
     def __init__(self, value):
-        super(UsageMaximum, self).__init__(0x29, value)  # TODO if value is less than -128 or over 127 it is code 0x2A and two bytes - little endian
+        super(UsageMaximum, self).__init__(_SimpleElement.UsageMaximum, value)  # TODO if value is less than -128 or over 127 it is code 0x2A and two bytes - little endian
 
 
 class LogicalMinimum(_SimpleElement):
     def __init__(self, value):
-        super(LogicalMinimum, self).__init__(0x15, value)  # TODO if value is less than -128 or over 127 it is code 0x16 and two bytes - little endian
+        super(LogicalMinimum, self).__init__(_SimpleElement.LogicalMinimum, value)  # TODO if value is less than -128 or over 127 it is code 0x16 and two bytes - little endian
 
 
 class LogicalMaximum(_SimpleElement):
     def __init__(self, value):
-        super(LogicalMaximum, self).__init__(0x25, value)  # TODO if value is less than -128 or over 127 it is code 0x26 and two bytes - little endian
+        super(LogicalMaximum, self).__init__(_SimpleElement.LogicalMaximum, value)  # TODO if value is less than -128 or over 127 it is code 0x26 and two bytes - little endian
 
 
 class PhysicalMinimum(_SimpleElement):
     def __init__(self, value):
-        super(PhysicalMinimum, self).__init__(0x35, value)
+        super(PhysicalMinimum, self).__init__(_SimpleElement.PhysicalMinimum, value)
 
 
 class PhysicalMaximum(_SimpleElement):
     def __init__(self, value):
-        super(PhysicalMaximum, self).__init__(0x45, value)
+        super(PhysicalMaximum, self).__init__(_SimpleElement.PhysicalMaximum, value)
 
 
 class ReportCount(_SimpleElement):
     def __init__(self, count):
-        super(ReportCount, self).__init__(0x95, count)
+        super(ReportCount, self).__init__(_SimpleElement.ReportCount, count)
 
 
 class ReportSize(_SimpleElement):
     def __init__(self, size):
-        super(ReportSize, self).__init__(0x75, size)
+        super(ReportSize, self).__init__(_SimpleElement.ReportSize, size)
 
 
 class Unit(_SimpleElement):
@@ -224,7 +248,7 @@ class Unit(_SimpleElement):
     SIRad = 0x21
 
     def __init__(self, value):
-        super(Unit, self).__init__(0x65, value)
+        super(Unit, self).__init__(_SimpleElement.Unit, value)
 
 
 class Input(_SimpleElement):
@@ -250,7 +274,7 @@ class Input(_SimpleElement):
     NullState = 0x40
 
     def __init__(self, *options):
-        super(Input, self).__init__(0x81, sum(options))
+        super(Input, self).__init__(_SimpleElement.Input, sum(options))
 
 
 def create_joystick_report_descriptor(kind=Usage.Gamepad, axes=(Usage.X, Usage.Y, Usage.Rx, Usage.Ry), hat_switch=False, button_number=14):
