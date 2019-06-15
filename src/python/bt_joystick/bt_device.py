@@ -8,6 +8,8 @@
 
 # Based on https://github.com/yaptb/BlogCode
 
+from optparse import OptionParser
+
 import os
 import sys
 import time
@@ -22,6 +24,15 @@ from bt_joystick import hid_report_descriptor
 from bt_joystick.bt_device_classes import LIMITED_DISCOVERABLE_MODE, PERIPHERAL, GAMEPAD
 from bt_joystick.hid_report_descriptor import Usage
 from bt_joystick.sdp_record import MinorDeviceClass
+
+
+ADAPTER_INTERFACE = 'org.bluez.Adapter1'
+AGENT_INTERFACE = 'org.bluez.Agent1'
+AGENT_PATH = '/org/gcc/btservice'
+
+
+class Rejected(dbus.DBusException):
+    _dbus_error_name = "org.bluez.Error.Rejected"
 
 
 class BTDevice(dbus.service.Object):
@@ -46,6 +57,8 @@ class BTDevice(dbus.service.Object):
         self.sinterrupt = None
         self.cinterrupt = None
 
+        self.pairable = False
+
         # create default HID descriptor and SDP record if not specified
         if service_record is not None:
             self.service_record = service_record
@@ -58,11 +71,17 @@ class BTDevice(dbus.service.Object):
         self.init_profile()
         self.ensure_dbus_conf_file()
 
-        bus_name = dbus.service.BusName("org.gcc.btservice", bus=dbus.SystemBus())
-        dbus.service.Object.__init__(self, bus_name, "/org/gcc/btservice")
+        self.system_bus = dbus.SystemBus()
+        obj = self.system_bus.get_object('org.bluez', "/org/bluez")
+        manager = dbus.Interface(obj, "org.bluez.AgentManager1")
 
-    # configure the bluetooth hardware device
+        dbus.service.Object.__init__(self, self.system_bus, AGENT_PATH)
+        manager.RegisterAgent(AGENT_PATH, "NoInputNoOutput")  # Capability can be DisplayOnly or DisplayYesNo, KeyboardOnly or KeyboardDisplay or just NoInputNoOutput
+        manager.RequestDefaultAgent(AGENT_PATH)
+        print("Agent registered ")
+
     def init_device(self):
+        # configure the bluetooth hardware device
         print("Bringing hcio up")
         os.system("hciconfig hcio up")
         time.sleep(1)  # Waiting for BT device to be brought up - it would be nicer to find better way than arbitrary wait
@@ -113,9 +132,12 @@ class BTDevice(dbus.service.Object):
 
         manager.RegisterProfile(BTDevice.PROFILE_DBUS_PATH, self.uuid, opts)
 
-    def listen(self):
+    def listen(self, timeout):
         self.scontrol = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
         self.sinterrupt = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_L2CAP)
+
+        self.scontrol.settimeout(timeout)
+        self.sinterrupt.settimeout(timeout)
 
         self.scontrol.bind((socket.BDADDR_ANY, self.P_CTRL))
         self.sinterrupt.bind((socket.BDADDR_ANY, self.P_INTR))
@@ -124,11 +146,15 @@ class BTDevice(dbus.service.Object):
         self.scontrol.listen(1)  # Limit of 1 connection
         self.sinterrupt.listen(1)
 
-        self.ccontrol, cinfo = self.scontrol.accept()
-        print("Got a connection on the control channel from " + cinfo[0])
+        try:
+            self.ccontrol, cinfo = self.scontrol.accept()
+            print("Got a connection on the control channel from " + cinfo[0])
 
-        self.cinterrupt, cinfo = self.sinterrupt.accept()
-        print("Got a connection on the interrupt channel from " + cinfo[0])
+            self.cinterrupt, cinfo = self.sinterrupt.accept()
+            print("Got a connection on the interrupt channel from " + cinfo[0])
+            return True
+        except socket.timeout as e:
+            return False
 
     def send_message(self, message):
         self.cinterrupt.send(message)
@@ -142,3 +168,77 @@ class BTDevice(dbus.service.Object):
         """
         self.send_message(bytes((0xA1, 0x01, button_bits & 255, button_bits >> 8, *[v if v >= 0 else v + 256 for v in axis_values], hat_value)))
 
+    def allow_pairing(self, pairable):
+        self.pairable = pairable
+
+    def is_pairable_allowed(self):
+        return self.pairable
+
+    def set_discoverable(self, discoverable):
+        props = dbus.Interface(self.system_bus.get_object("org.bluez", "/org/bluez/hci0"), "org.freedesktop.DBus.Properties")
+        props.Set(ADAPTER_INTERFACE, "Discoverable", dbus.types.Boolean(discoverable))
+
+    # Agent methods
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="", out_signature="")
+    def Release(self):
+        print("Release")
+        # if self.exit_on_release:
+        #     #mainloop.quit()
+        #     pass
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="os", out_signature="")
+    def AuthorizeService(self, device, uuid):
+        print("AuthorizeService (%s, %s)" % (device, uuid))
+        # authorize = ask("Authorize connection (yes/no): ")
+        # if authorize == "yes":
+        #     return
+        # raise Rejected("Connection rejected by user")
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="o", out_signature="s")
+    def RequestPinCode(self, device):
+        print("RequestPinCode (%s)" % (device))
+        # set_trusted(device)
+        # return ask("Enter PIN Code: ")
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="o", out_signature="u")
+    def RequestPasskey(self, device):
+        print("RequestPasskey (%s)" % (device))
+        # set_trusted(device)
+        # passkey = ask("Enter passkey: ")
+        # return dbus.UInt32(passkey)
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="ouq", out_signature="")
+    def DisplayPasskey(self, device, passkey, entered):
+        print("DisplayPasskey (%s, %06u entered %u)" %
+              (device, passkey, entered))
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="os", out_signature="")
+    def DisplayPinCode(self, device, pincode):
+        print("DisplayPinCode (%s, %s)" % (device, pincode))
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="ou", out_signature="")
+    def RequestConfirmation(self, device, passkey):
+        print("RequestConfirmation (%s, %06d) ..." % (device, passkey))
+        if not self.pairable:
+            print("Rejecting as we are not pairable")
+            raise Rejected("Try again")
+
+        print("Setting device to trusted...")
+        props = dbus.Interface(self.system_bus.get_object("org.bluez", device), "org.freedesktop.DBus.Properties")
+        props.Set("org.bluez.Device1", "Trusted", True)
+        print("Approving device...")
+
+        return
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="o", out_signature="")
+    def RequestAuthorization(self, device):
+        print("RequestAuthorization (%s)" % (device))
+        # auth = ask("Authorize? (yes/no): ")
+        # if auth == "yes":
+        #     return
+        # raise Rejected("Pairing rejected")
+
+    @dbus.service.method(AGENT_INTERFACE, in_signature="", out_signature="")
+    def Cancel(self):
+        print("Cancel")

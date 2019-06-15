@@ -122,6 +122,8 @@ class ExplorerPHatJoystick(Joystick):
         return self.axes
 
     def read_buttons(self):
+        old_bind = self.buttons['dpad_up']
+
         self.buttons['dpad_up'] = not bool(GPIO.input(ExplorerPHatJoystick.UP))
         self.buttons['dpad_down'] = not bool(GPIO.input(ExplorerPHatJoystick.DOWN))
         self.buttons['dpad_left'] = not bool(GPIO.input(ExplorerPHatJoystick.LEFT))
@@ -134,6 +136,11 @@ class ExplorerPHatJoystick(Joystick):
         self.buttons['tl'] = not bool(GPIO.input(ExplorerPHatJoystick.TL))
         self.buttons['tr'] = not bool(GPIO.input(ExplorerPHatJoystick.TR))
         self.buttons['thumb'] = not bool(GPIO.input(ExplorerPHatJoystick.THUMB))
+
+        new_bind = self.buttons['dpad_up']
+        if not old_bind and new_bind:
+            print("Got change on dpad_up - setting to pairable")
+            self.start_pairing()
 
         return [
             self.buttons['trigger'],
