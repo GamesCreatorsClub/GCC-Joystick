@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # A virtual gamepad: shows a text-based (curses) to control the sticks and buttons of the default gamepad.
 #
@@ -5,10 +7,16 @@
 # PYTHONPATH=./src/python/ python3 examples/virtual_gamepad.py
 #
 
+import os
+import sys
+
 from dbus.mainloop.glib import DBusGMainLoop
 from bt_joystick import BTDevice, hid_report_descriptor
 from bt_joystick.hid_report_descriptor import Usage
 from virtual_device_ui import run
+
+if not os.geteuid() == 0:
+    sys.exit("Only root can run this script")
 
 buttons = ['A', 'B', 'C', 'X', 'Y', 'Z', 'TL', 'TR', 'TL2', 'TR2', 'SELECT', 'START', 'MODE', 'THUMBL', 'THUMBR']
 axes = [ 'X', 'Y', 'RX', 'RY' ]

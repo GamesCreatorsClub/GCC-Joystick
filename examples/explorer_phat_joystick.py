@@ -12,7 +12,7 @@ import RPi.GPIO as GPIO
 import time
 
 from smbus import SMBus
-from bt_joystick import Joystick
+from bt_joystick import Joystick, BluetoothJoystickDeviceMain
 
 
 class ExplorerPHatJoystick(Joystick):
@@ -42,6 +42,7 @@ class ExplorerPHatJoystick(Joystick):
     REG_CFG = 0x01
 
     def __init__(self):
+        super(ExplorerPHatJoystick, self).__init__()
         self.address = 0x48
         self.i2c = SMBus(1)
 
@@ -49,8 +50,8 @@ class ExplorerPHatJoystick(Joystick):
         self.channel_map = {0: 0x4000, 1: 0x5000, 2: 0x6000, 3: 0x7000}
         self.programmable_gain_map = {6144: 0x0000, 4096: 0x0200, 2048: 0x0400, 1024: 0x0600, 512: 0x0800, 256: 0x0A00}
 
-        self.axis = { 'x': 0.0, 'y': 0.0, 'rx': 0.0, 'ry': 0.0 }
-        self.buttons = { 'trigger': False, 'tl': False, 'tr': False, 'thumb': False, 'dpad_up': False, 'dpad_down': False, 'dpad_left': False, 'dpad_right': False, 'thumbl': False, 'thumbr': False }
+        self.axes = {Joystick.X: 0.0, Joystick.Y: 0.0, Joystick.Rx: 0.0, Joystick.Ry: 0.0}
+        self.buttons = {'trigger': False, 'tl': False, 'tr': False, 'thumb': False, 'dpad_up': False, 'dpad_down': False, 'dpad_left': False, 'dpad_right': False, 'thumbl': False, 'thumbr': False}
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -106,14 +107,24 @@ class ExplorerPHatJoystick(Joystick):
         # print("Read joystick value as " + str(v) + " fixed it to " + str(r))
         return r
 
-    def readAxis(self):
-        self.axis['rx'] = self._fix(self._read_se_adc(3))
-        self.axis['ry'] = self._fix(self._read_se_adc(0))
-        self.axis['x'] = self._fix(self._read_se_adc(2))
-        self.axis['y'] = self._fix(self._read_se_adc(1))
-        return self.axis
+    @property
+    def defined_button_number(self):
+        return 14
 
-    def readButtons(self):
+    @property
+    def defined_axes(self):
+        return [Joystick.X, Joystick.Y, Joystick.Rx, Joystick.Ry]
+
+    def read_axes(self):
+        self.axes[Joystick.Rx] = self._fix(self._read_se_adc(3))
+        self.axes[Joystick.Ry] = self._fix(self._read_se_adc(0))
+        self.axes[Joystick.X] = self._fix(self._read_se_adc(2))
+        self.axes[Joystick.Y] = self._fix(self._read_se_adc(1))
+        return self.axes
+
+    def read_buttons(self):
+        old_bind = self.buttons['dpad_up']
+
         self.buttons['dpad_up'] = not bool(GPIO.input(ExplorerPHatJoystick.UP))
         self.buttons['dpad_down'] = not bool(GPIO.input(ExplorerPHatJoystick.DOWN))
         self.buttons['dpad_left'] = not bool(GPIO.input(ExplorerPHatJoystick.LEFT))
@@ -127,7 +138,22 @@ class ExplorerPHatJoystick(Joystick):
         self.buttons['tr'] = not bool(GPIO.input(ExplorerPHatJoystick.TR))
         self.buttons['thumb'] = not bool(GPIO.input(ExplorerPHatJoystick.THUMB))
 
-        return self.buttons
+        new_bind = self.buttons['dpad_up']
+        if not old_bind and new_bind:
+            print("Got change on dpad_up - setting to pairable")
+            self.start_pairing()
+
+        return [
+            self.buttons['trigger'],
+            self.buttons['thumbl'],
+            self.buttons['thumbr'],
+            self.buttons['thumb'],
+            self.buttons['tl'],
+            self.buttons['tr'],
+            self.buttons['dpad_up'],
+            self.buttons['dpad_down'],
+            self.buttons['dpad_left'],
+            self.buttons['dpad_right']]
 
 
 if __name__ == "__main__":

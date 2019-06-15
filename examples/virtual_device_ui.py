@@ -7,11 +7,13 @@ from struct import pack
 # - also allow single axes (not just 2 axes grouped into a "stick")
 # - handle "known" buttons? (start, select, etc.)
 
+
 def draw_arrows(window, y, x):
     window.addch(y-1, x, curses.ACS_UARROW, curses.color_pair(1))
     window.addch(y+1, x, curses.ACS_DARROW, curses.color_pair(1))
     window.addch(y, x-1, curses.ACS_LARROW, curses.color_pair(1))
     window.addch(y, x+1, curses.ACS_RARROW, curses.color_pair(1))
+
 
 def draw_stick(window, key, xvalue, yvalue, xname, yname, selected):
     window.erase()
@@ -30,6 +32,7 @@ def draw_stick(window, key, xvalue, yvalue, xname, yname, selected):
     if selected:
         draw_arrows(window, vy, vx)
     window.refresh()
+
 
 def draw_dpad(window, key, xvalue, yvalue, selected):
     window.erase()
@@ -59,6 +62,7 @@ def draw_dpad(window, key, xvalue, yvalue, selected):
         window.addch(vy+1, vx, ' ')
     window.refresh()
 
+
 def draw_hat_switch(window, key, xvalue, yvalue, selected):
     window.erase()
     # Title and border
@@ -73,7 +77,8 @@ def draw_hat_switch(window, key, xvalue, yvalue, selected):
     if selected:
         draw_arrows(window, 3, 3)
     window.refresh()
-    
+
+
 def draw_buttons(window, buttons, pressed):
     window.addstr(0, 0, 'Buttons')
     for i, b in enumerate(buttons):
@@ -81,6 +86,7 @@ def draw_buttons(window, buttons, pressed):
         window.addstr(i + 2, 12, chr(ord('A') + i), curses.color_pair(1))
         window.addch(i + 2, 8, curses.ACS_DIAMOND if pressed[i] else ' ', curses.color_pair(2))
     window.refresh()
+
 
 def control_hat_switch(x, y, c):
     if c == curses.KEY_UP:
@@ -94,6 +100,7 @@ def control_hat_switch(x, y, c):
 
     return (x, y)
 
+
 def control_dpad(x, y, c):
     #TODO same as control_hat_switch for now - maybe only allow only one direction at a time instead of both x and y?
     if c == curses.KEY_UP:
@@ -106,6 +113,7 @@ def control_dpad(x, y, c):
         x = max(-1, x - 1)
 
     return (x, y)
+
 
 def control_stick(x, y, t0, c):
     t = time.monotonic()
@@ -135,6 +143,7 @@ def control_stick(x, y, t0, c):
 
     return (x, y, t0)
 
+
 def hat_value(x, y):
     if x == 0 and y == -1:
         # top
@@ -162,6 +171,7 @@ def hat_value(x, y):
         return 8
     else:
         return 9
+
 
 def curses_main(screen, title, device, has_hat_switch, has_dpad, axes, sticks, buttons):
     HAT_SWITCH_WIN_HEIGHT = 8
@@ -283,11 +293,14 @@ def curses_main(screen, title, device, has_hat_switch, has_dpad, axes, sticks, b
             device.send_values(button_bits, [axis_values[a] for a in axes], hat_value(hat_switch_x, hat_switch_y))
         curses.napms(10)
 
+
 def run(title, device, has_hat_switch, has_dpad, axes, sticks, buttons):
     stop = False
     while not stop:
         print("Waiting for connections")
-        device.listen()
+        connected = False
+        while not connected:
+            connected = device.listen(1)
         try:
             curses.wrapper(curses_main, title, device, has_hat_switch, has_dpad, axes, sticks, buttons)
             stop = True
