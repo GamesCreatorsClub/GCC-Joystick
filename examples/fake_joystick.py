@@ -27,6 +27,14 @@ class FakeJoystick(Joystick):
             'thumb': False,
         }
 
+    @property
+    def defined_button_number(self):
+        return 10
+
+    @property
+    def defined_axes(self):
+        return [Joystick.X, Joystick.Y, Joystick.Rx, Joystick.Ry]
+
     def read_axes(self):
         self.count = self.count + self.direction
         if self.count > 127:
@@ -35,12 +43,23 @@ class FakeJoystick(Joystick):
         elif self.count < -127:
             self.count = 0
             self.direction = 1
-        return { 'x': self.count + 127, 'y': self.count + 127, 'rx': self.count + 127, 'ry': self.count + 127 }
+        return { Joystick.X: self.count + 127, Joystick.Y: self.count + 127, Joystick.Rx: self.count + 127, Joystick.Ry: self.count + 127 }
 
     def read_buttons(self):
         for b in self.buttons:
             self.buttons[b] = not self.buttons[b]
-        return self.buttons
+        self.start_pairing()
+        return [
+            self.buttons['trigger'],
+            self.buttons['thumbl'],
+            self.buttons['thumbr'],
+            self.buttons['thumb'],
+            self.buttons['tl'],
+            self.buttons['tr'],
+            self.buttons['dpad_up'],
+            self.buttons['dpad_down'],
+            self.buttons['dpad_left'],
+            self.buttons['dpad_right']]
 
 
 if __name__ == "__main__":

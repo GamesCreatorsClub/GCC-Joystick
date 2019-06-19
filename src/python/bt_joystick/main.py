@@ -5,10 +5,6 @@
 #
 # MIT License
 #
-import threading
-import time
-import sys
-
 from dbus.mainloop.glib import DBusGMainLoop
 from bt_joystick import BTDevice
 
@@ -67,7 +63,6 @@ class BluetoothJoystickDeviceMain:
 
         self.only_changes = True
         self._do_run = True
-        self._gobject_loop_exception = None
 
         self.button_bits = [0] * ((self.button_number - 1) // 8 + 1)
         self.new_button_bits = [0] * len(self.button_bits)
@@ -141,38 +136,26 @@ class BluetoothJoystickDeviceMain:
             print("Failed to send data - disconnected; " + str(e))
             return False
 
-    def setup_gobject_mainloop(self):
-        def main_loop():
-            try:
-                print("Staring GTK main loop...")
-                mainloop.run()
-                print("Stopped GTK main loop.")
-            except KeyboardInterrupt as e:
-                print("Got keyboard exception in thread; " + str(e))
-                mainloop.quit()
-                self._gobject_loop_exception = e
-            except Exception as e:
-                print("Got exception in thread; " + str(e))
-                mainloop.quit()
-                self._gobject_loop_exception = e
-
+    def run_gobject_mainloop(self):
         mainloop = GObject.MainLoop()
+        GObject.timeout_add(1000 / self.reading_frequency, self.update)
+        try:
+            print("Starting GTK main loop...")
+            mainloop.run()
+            print("Stopped GTK main loop.")
+        except KeyboardInterrupt as e:
+            print("Got keyboard exception in main loop: " + str(e))
+            mainloop.quit()
+        except Exception as e:
+            print("Got exception in main loop: " + str(e))
+            mainloop.quit()
 
-        thread = threading.Thread(target=main_loop)
-        thread.setDaemon(True)
-        thread.start()
-
-    def loop(self):
-        if self._gobject_loop_exception is not None:
-            raise self._gobject_loop_exception
-
+    def update(self):
         if not self.connected:
             self.connected = self.bt_device.listen(1 / self.reading_frequency)
             if self.connected:
                 self.bt_device.allow_pairing(False)
                 self.bt_device.set_discoverable(False)
-        else:
-            time.sleep(1 / self.reading_frequency)
 
         self.read_joystick_values()
 
@@ -183,9 +166,8 @@ class BluetoothJoystickDeviceMain:
                 # TODO add proper disconnect 'try' here...
                 self.connected = False
 
+        return True
+
     def run(self):
         self.init()
-        self.setup_gobject_mainloop()
-
-        while self._do_run:
-            self.loop()
+        self.run_gobject_mainloop()
