@@ -88,7 +88,7 @@ class BTDevice(dbus.service.Object):
 
         os.system("hciconfig hcio class 0x{:06x}".format(self.device_class))
         os.system("hciconfig hcio name " + self.device_name)
-        os.system("hciconfig hcio piscan")
+        # os.system("hciconfig hcio piscan")
 
     def ensure_dbus_conf_file(self):
         def compare_old_and_new(old_content):
